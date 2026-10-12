@@ -41,8 +41,14 @@ export function MapView({ spots, selected, onSelect }: MapViewProps) {
       })
     })
     mapRef.current = map
+    const resize = () => map.resize()
+    map.on('load', resize)
+    const observer = new ResizeObserver(resize)
+    observer.observe(container)
+    requestAnimationFrame(resize)
 
     return () => {
+      observer.disconnect()
       markersRef.current.forEach((marker) => marker.remove())
       markersRef.current = []
       map.remove()

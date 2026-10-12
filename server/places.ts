@@ -54,10 +54,11 @@ export async function searchPlaces(query: string): Promise<Location[]> {
 
   const results: Location[] = []
   for (const item of data) {
+    const label = item.display_name?.split(',').slice(0, 2).join(', ') || item.name || query
     const parsed = locationSchema.safeParse({
       latitude: Number(item.lat),
       longitude: Number(item.lon),
-      name: oneLine(item.name || item.display_name?.split(',')[0] || query),
+      name: oneLine(label),
     })
     if (parsed.success) results.push(parsed.data)
   }

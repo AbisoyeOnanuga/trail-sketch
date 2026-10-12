@@ -55,9 +55,18 @@ button:disabled { cursor: progress; opacity: 0.7; }
   border: 0;
 }
 
-.app { height: 100dvh; position: relative; }
+.app {
+  height: 100dvh;
+  position: relative;
+}
 
-.map { position: absolute; inset: 0; }
+.map,
+.map.maplibregl-map {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
 
 .map .maplibregl-ctrl-bottom-right { bottom: 5.5rem; }
 
