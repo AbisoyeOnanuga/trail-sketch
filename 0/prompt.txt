@@ -1,0 +1,1 @@
+the app is called Trail Sketch. It's also for drawing not just painting. I also want to add the use of entire on the project for my cursor agent session as I just installed its CLI with powershell. for any tools used, I can provide needed API keys as we build. I have an elevenlabs profile and render account, but yet to use Gemma on a project
