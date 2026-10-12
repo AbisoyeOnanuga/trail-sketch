@@ -13,6 +13,7 @@ import {
   type Study,
   type StudyKind,
 } from '../../shared/studies.ts'
+import { ReachMark } from '../icons/marks.tsx'
 
 const palettes: Record<StudyKind, [string, string, string]> = {
   water: ['#e7f2ef', '#7eb0b8', '#1d4e5c'],
@@ -179,6 +180,7 @@ export function Explorer({
               className={distance === choice.id ? 'is-on' : ''}
               onClick={() => onDistance(choice.id)}
             >
+              <ReachMark id={choice.id} />
               {choice.label}
             </button>
           ))}

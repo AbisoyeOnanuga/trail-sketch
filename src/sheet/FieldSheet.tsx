@@ -1,4 +1,6 @@
 import { mediumLabels, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
+import { StudyArt } from '../explore/Explorer.tsx'
+import type { StudyKind } from '../../shared/studies.ts'
 
 type FieldSheetProps = {
   location: Location
@@ -10,6 +12,7 @@ type FieldSheetProps = {
   onClose: () => void
   onWrite: () => void
   onListen: () => void
+  kind: StudyKind | null
 }
 
 export function FieldSheet({
@@ -22,6 +25,7 @@ export function FieldSheet({
   onClose,
   onWrite,
   onListen,
+  kind,
 }: FieldSheetProps) {
   const study = card ?? null
   const pigment = usesPigment(medium)
@@ -36,8 +40,13 @@ export function FieldSheet({
           Close
         </button>
       </div>
-      <h2>{study?.placeName ?? location.name}</h2>
-      <p className="weather">{study?.weatherLine || weatherLine || 'Reading the light…'}</p>
+      <div className="study-hero">
+        {kind ? <StudyArt kind={kind} /> : null}
+        <div>
+          <h2>{study?.placeName ?? location.name}</h2>
+          <p className="weather">{study?.weatherLine || weatherLine || 'Reading the light…'}</p>
+        </div>
+      </div>
       {notice ? <p className="notice">{notice}</p> : null}
       {study?.source === 'sample' ? <p className="sample-flag">Sample study</p> : null}
 

@@ -12,6 +12,7 @@ import {
 import { spots, type Spot } from './data/spots.ts'
 import { Explorer, StudyArt } from './explore/Explorer.tsx'
 import { isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
+import { LibraryMark, LocateMark, MediumMark } from './icons/marks.tsx'
 import { LibrarySheet } from './library/LibrarySheet.tsx'
 import { MapView } from './map/MapView.tsx'
 import { FieldSheet } from './sheet/FieldSheet.tsx'
@@ -466,16 +467,19 @@ export default function App() {
               className={medium === item ? 'is-on' : ''}
               onClick={() => changeMedium(item)}
             >
+              <MediumMark medium={item} />
               {mediumLabels[item]}
             </button>
           ))}
         </div>
         <div className="bar-actions">
           <button type="button" className="locate" onClick={locate}>
-            Find places near me
+            <LocateMark />
+            Near me
           </button>
           <button type="button" className="locate" onClick={() => setLibraryOpen(true)}>
-            Studied{visits.length > 0 ? ` · ${visits.length}` : ''}
+            <LibraryMark />
+            Studied{visits.length > 0 ? ` ${visits.length}` : ''}
           </button>
           {saved && !selected ? (
             <button
@@ -556,6 +560,15 @@ export default function App() {
             setCard(null)
             setNotice(null)
           }}
+          kind={
+            studies.find((study) => samePlace(study, selected))?.kind ??
+            visits.find(
+              (visit) =>
+                Math.abs(visit.latitude - selected.latitude) < 0.0004 &&
+                Math.abs(visit.longitude - selected.longitude) < 0.0004,
+            )?.kind ??
+            null
+          }
           onWrite={() => void writeStudy()}
           onListen={() => void listen()}
         />

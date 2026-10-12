@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 import type { Location } from '../../shared/contract.ts'
 import type { Spot } from '../data/spots.ts'
+import { pinMarkup } from '../icons/pins.ts'
 
 type MapViewProps = {
   spots: Spot[]
@@ -70,6 +71,7 @@ export function MapView({ spots, camera, onPin, onGround }: MapViewProps) {
       dot.className = `pin pin-${spot.kind ?? 'viewpoint'}${spot.studied ? ' is-studied' : ''}`
       dot.title = spot.studied ? `${spot.name}, studied` : spot.name
       dot.setAttribute('aria-label', dot.title)
+      dot.innerHTML = pinMarkup[spot.kind ?? 'viewpoint']
       const active =
         camera !== null &&
         Math.abs(camera.longitude - spot.longitude) < 0.0001 &&
