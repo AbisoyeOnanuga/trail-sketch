@@ -1,6 +1,6 @@
 # Trail Sketch
 
-A phone-first map for plein-air drawing and painting. Pick graphite, ink, watercolor, or oil, stand at a place, and write a field study. Gemma writes the study. ElevenLabs reads it aloud so the phone can go back in a pocket. The last live study stays on the device.
+A phone-first map for plein-air drawing and painting. On a phone it asks what you look for, then shows painted previews of places within a short stay, a walk, or a hike. Tap a feel word, or describe the study, and the closest match comes forward. Open it for the drawing or painting notes. Gemma writes that study. ElevenLabs reads it aloud so the phone can go back in a pocket. The last live study stays on the device.
 
 ## Run locally
 
@@ -13,7 +13,7 @@ The map and search work without keys. Copy `.env.example` to `.env` in this fold
 
 | Name | Purpose |
 | --- | --- |
-| `GEMMA_API_KEY` | Google AI Studio key for Gemma |
+| `GEMMA_API_KEY` | Google AI Studio key. The same key calls Gemma. `GEMINI_API_KEY` is read only if this name is empty. |
 | `GEMMA_MODEL` | Defaults to `gemma-3-12b-it` |
 | `GEMMA_BASE_URL` | Optional. Use `http://127.0.0.1:11434/v1` for a local Ollama Gemma |
 | `ELEVENLABS_API_KEY` | Narration |

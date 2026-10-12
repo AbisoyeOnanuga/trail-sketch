@@ -4,6 +4,7 @@ import { fieldCardRequestSchema } from '../shared/contract.ts'
 import { observeWeather, writeFieldCard } from './gemma.ts'
 import { allowRequest, clientKey } from './limit.ts'
 import { narrate } from './narrate.ts'
+import { nearbyStudies } from './nearby.ts'
 import { reverseName, searchPlaces, weatherLine } from './places.ts'
 
 const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
@@ -16,6 +17,7 @@ const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   card_unreadable: 502,
   gemma_base_url_rejected: 500,
   geocode_failed: 502,
+  nearby_failed: 502,
   voice_rejected: 500,
   empty_script: 400,
   rate_limited: 429,
@@ -40,6 +42,27 @@ export function createApp(): Hono {
     try {
       const results = await searchPlaces(query)
       return c.json({ results })
+    } catch (error) {
+      const failed = fail(error)
+      return c.json(failed.body, failed.status)
+    }
+  })
+
+  app.get('/api/nearby', async (c) => {
+    const latitude = Number(c.req.query('latitude'))
+    const longitude = Number(c.req.query('longitude'))
+    const radius = Number(c.req.query('radius'))
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return c.json({ error: 'invalid_coordinates' }, 400)
+    }
+    if (!Number.isInteger(radius) || radius < 400 || radius > 15000) {
+      return c.json({ error: 'invalid_radius' }, 400)
+    }
+    const key = `nearby:${clientKey(c.req.header('x-forwarded-for'))}`
+    if (!allowRequest(key, 10, 60_000)) return c.json({ error: 'rate_limited' }, 429)
+    try {
+      const studies = await nearbyStudies(latitude, longitude, radius)
+      return c.json({ studies })
     } catch (error) {
       const failed = fail(error)
       return c.json(failed.body, failed.status)

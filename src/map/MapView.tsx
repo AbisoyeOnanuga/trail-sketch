@@ -7,19 +7,22 @@ import type { Spot } from '../data/spots.ts'
 
 type MapViewProps = {
   spots: Spot[]
-  selected: Location | null
-  onSelect: (location: Location) => void
+  camera: Location | null
+  onPin: (location: Location) => void
+  onGround: (location: Location) => void
 }
 
-export function MapView({ spots, selected, onSelect }: MapViewProps) {
+export function MapView({ spots, camera, onPin, onGround }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const markersRef = useRef<Marker[]>([])
-  const onSelectRef = useRef(onSelect)
+  const onPinRef = useRef(onPin)
+  const onGroundRef = useRef(onGround)
 
   useEffect(() => {
-    onSelectRef.current = onSelect
-  }, [onSelect])
+    onPinRef.current = onPin
+    onGroundRef.current = onGround
+  }, [onPin, onGround])
 
   useEffect(() => {
     const container = containerRef.current
@@ -34,7 +37,7 @@ export function MapView({ spots, selected, onSelect }: MapViewProps) {
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right')
     map.on('click', (event: MapMouseEvent) => {
-      onSelectRef.current({
+      onGroundRef.current({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
         name: 'This spot',
@@ -68,13 +71,13 @@ export function MapView({ spots, selected, onSelect }: MapViewProps) {
       dot.title = spot.name
       dot.setAttribute('aria-label', spot.name)
       const active =
-        selected !== null &&
-        Math.abs(selected.longitude - spot.longitude) < 0.0001 &&
-        Math.abs(selected.latitude - spot.latitude) < 0.0001
+        camera !== null &&
+        Math.abs(camera.longitude - spot.longitude) < 0.0001 &&
+        Math.abs(camera.latitude - spot.latitude) < 0.0001
       if (active) dot.classList.add('is-active')
       dot.addEventListener('click', (event) => {
         event.stopPropagation()
-        onSelectRef.current({
+        onPinRef.current({
           longitude: spot.longitude,
           latitude: spot.latitude,
           name: spot.name,
@@ -82,17 +85,20 @@ export function MapView({ spots, selected, onSelect }: MapViewProps) {
       })
       return new Marker({ element: dot }).setLngLat([spot.longitude, spot.latitude]).addTo(map)
     })
-  }, [spots, selected])
+  }, [spots, camera])
+
+  const cameraLongitude = camera?.longitude
+  const cameraLatitude = camera?.latitude
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !selected) return
+    if (!map || cameraLongitude === undefined || cameraLatitude === undefined) return
     map.flyTo({
-      center: [selected.longitude, selected.latitude],
+      center: [cameraLongitude, cameraLatitude],
       zoom: Math.max(map.getZoom(), 13),
       essential: true,
     })
-  }, [selected])
+  }, [cameraLongitude, cameraLatitude])
 
   return <div ref={containerRef} className="map" />
 }

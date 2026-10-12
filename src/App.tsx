@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   errorCopy,
+  loadNearby,
   loadPlace,
   readCachedCard,
   requestFieldCard,
@@ -8,7 +9,8 @@ import {
   searchPlaces,
   writeCachedCard,
 } from './api.ts'
-import { spots } from './data/spots.ts'
+import { spots, type Spot } from './data/spots.ts'
+import { Explorer } from './explore/Explorer.tsx'
 import { MapView } from './map/MapView.tsx'
 import { FieldSheet } from './sheet/FieldSheet.tsx'
 import {
@@ -19,6 +21,18 @@ import {
   type Location,
   type Medium,
 } from '../shared/contract.ts'
+import {
+  distanceChoices,
+  portraitFor,
+  rankStudies,
+  type DistanceId,
+  type FeelWord,
+  type InterestId,
+  type Study,
+  type StudyKind,
+} from '../shared/studies.ts'
+
+const INTERESTS_KEY = 'trail-sketch.interests'
 
 function sampleCard(location: Location, medium: Medium, sky: string): FieldCard {
   const pigment = usesPigment(medium)
@@ -40,6 +54,56 @@ function sampleCard(location: Location, medium: Medium, sky: string): FieldCard 
   }
 }
 
+function readInterests(): InterestId[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(INTERESTS_KEY) ?? 'null') as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is InterestId =>
+      item === 'water' || item === 'trees' || item === 'buildings' || item === 'sky' || item === 'streets' || item === 'hills',
+    )
+  } catch {
+    return []
+  }
+}
+
+function kindFromHint(hint: string): StudyKind {
+  const text = hint.toLowerCase()
+  if (/pond|water|skyline|river|beach|shore|lake/.test(text)) return 'water'
+  if (/terrace|arcade|observatory|bridge|street|arch/.test(text)) return 'architecture'
+  if (/hill|ridge|peak|cliff/.test(text)) return 'hill'
+  if (/view|overlook|light|sky/.test(text)) return 'viewpoint'
+  return 'park'
+}
+
+const travelStudies: Study[] = spots.map((spot) => {
+  const kind = kindFromHint(spot.hint)
+  const portrait = portraitFor(kind)
+  return {
+    id: spot.id,
+    name: spot.name,
+    longitude: spot.longitude,
+    latitude: spot.latitude,
+    distanceMeters: 0,
+    kind,
+    feel: portrait.feel,
+    line: spot.hint,
+  }
+})
+
+function samePlace(study: Study, location: Location): boolean {
+  return Math.abs(study.longitude - location.longitude) < 0.0001 && Math.abs(study.latitude - location.latitude) < 0.0001
+}
+
+function toSpot(study: Study): Spot {
+  return {
+    id: study.id,
+    name: study.name,
+    longitude: study.longitude,
+    latitude: study.latitude,
+    hint: study.line,
+  }
+}
+
 export default function App() {
   const [medium, setMedium] = useState<Medium>('graphite')
   const [selected, setSelected] = useState<Location | null>(null)
@@ -50,6 +114,16 @@ export default function App() {
   const [results, setResults] = useState<Location[]>([])
   const [busy, setBusy] = useState<'card' | 'voice' | 'search' | null>(null)
   const [saved] = useState<FieldCard | null>(() => readCachedCard())
+  const [interests, setInterests] = useState<InterestId[]>(() => readInterests())
+  const [editing, setEditing] = useState(false)
+  const [distance, setDistance] = useState<DistanceId>('walk')
+  const [feel, setFeel] = useState<FeelWord | null>(null)
+  const [prompt, setPrompt] = useState('')
+  const [area, setArea] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [studies, setStudies] = useState<Study[]>([])
+  const [areaBusy, setAreaBusy] = useState(false)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [touched, setTouched] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
   const chooseId = useRef(0)
@@ -59,6 +133,58 @@ export default function App() {
       if (audioUrl.current) URL.revokeObjectURL(audioUrl.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!area || interests.length === 0) return
+    const meters = distanceChoices.find((choice) => choice.id === distance)?.meters ?? 4000
+    let cancelled = false
+    setAreaBusy(true)
+    setNotice(null)
+    loadNearby(area.latitude, area.longitude, meters)
+      .then((next) => {
+        if (!cancelled) setStudies(next)
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        const code = error instanceof Error ? error.message : 'request_failed'
+        setStudies([])
+        setNotice(errorCopy[code] ?? errorCopy.request_failed)
+      })
+      .finally(() => {
+        if (!cancelled) setAreaBusy(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [area, distance, interests.length])
+
+  const pool = useMemo(() => {
+    if (studies.length > 0) return studies
+    if (area) return []
+    return travelStudies
+  }, [studies, area])
+
+  const ranked = useMemo(
+    () => rankStudies(pool, { feel, description: prompt, interests }),
+    [pool, feel, prompt, interests],
+  )
+
+  useEffect(() => {
+    const best = ranked[0]
+    if (best) setActiveId(best.id)
+  }, [ranked])
+
+  const focused = ranked.find((study) => study.id === activeId) ?? ranked[0] ?? null
+  const camera = useMemo<Location | null>(() => {
+    if (selected) return selected
+    if (focused && (area || touched)) {
+      return { name: focused.name, longitude: focused.longitude, latitude: focused.latitude }
+    }
+    if (area) return { name: 'Here', longitude: area.longitude, latitude: area.latitude }
+    return null
+  }, [selected, focused, area, touched])
+
+  const mapSpots = area ? studies.map(toSpot) : spots
 
   const choose = useCallback(async (location: Location) => {
     const id = chooseId.current + 1
@@ -84,6 +210,33 @@ export default function App() {
     }
   }, [])
 
+  const locate = useCallback(() => {
+    if (!navigator.geolocation) {
+      setNotice('This browser cannot share a location.')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSelected(null)
+        setCard(null)
+        setArea({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+      },
+      () => setNotice('Location stayed off. Search a place or pick a trip.'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+    )
+  }, [])
+
+  useEffect(() => {
+    if (interests.length === 0 || area) return
+    locate()
+  }, [interests.length, area, locate])
+
+  function saveInterests(next: InterestId[]) {
+    localStorage.setItem(INTERESTS_KEY, JSON.stringify(next))
+    setInterests(next)
+    setEditing(false)
+  }
+
   async function onSearch(event: FormEvent) {
     event.preventDefault()
     const trimmed = query.trim()
@@ -101,22 +254,12 @@ export default function App() {
     }
   }
 
-  function locate() {
-    if (!navigator.geolocation) {
-      setNotice('This browser cannot share a location.')
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        void choose({
-          longitude: position.coords.longitude,
-          latitude: position.coords.latitude,
-          name: 'This spot',
-        })
-      },
-      () => setNotice('Location stayed off. Search a place or tap the map.'),
-      { enableHighAccuracy: true, timeout: 8000 },
-    )
+  function focusSearch(place: Location) {
+    setResults([])
+    setQuery('')
+    setSelected(null)
+    setCard(null)
+    setArea({ latitude: place.latitude, longitude: place.longitude })
   }
 
   async function writeStudy() {
@@ -163,8 +306,21 @@ export default function App() {
     setCard(null)
   }
 
+  function onPin(location: Location) {
+    const match = ranked.find((study) => samePlace(study, location))
+    if (match) {
+      setTouched(true)
+      setActiveId(match.id)
+      return
+    }
+    void choose(location)
+  }
+
+  const promptActive = feel !== null || prompt.length > 0
+  const showExplorer = selected === null
+
   return (
-    <div className="app">
+    <div className={showExplorer ? 'app has-explorer' : 'app'}>
       <header className="bar">
         <div className="brand">
           <p className="mark">Trail Sketch</p>
@@ -228,7 +384,7 @@ export default function App() {
         <ul className="results">
           {results.map((place) => (
             <li key={`${place.longitude}-${place.latitude}`}>
-              <button type="button" onClick={() => void choose(place)}>
+              <button type="button" onClick={() => focusSearch(place)}>
                 {place.name}
               </button>
             </li>
@@ -236,9 +392,7 @@ export default function App() {
         </ul>
       ) : null}
 
-      {notice && !selected ? <p className="toast">{notice}</p> : null}
-
-      <MapView spots={spots} selected={selected} onSelect={(location) => void choose(location)} />
+      <MapView spots={mapSpots} camera={camera} onPin={onPin} onGround={(location) => void choose(location)} />
 
       {selected ? (
         <FieldSheet
@@ -257,7 +411,31 @@ export default function App() {
           onListen={() => void listen()}
         />
       ) : (
-        <p className="hint">Tap a pigment dot, search a place, or stand where you will draw.</p>
+        <Explorer
+          interests={interests}
+          editing={editing}
+          onSaveInterests={saveInterests}
+          onEditInterests={() => setEditing(true)}
+          distance={distance}
+          onDistance={setDistance}
+          feel={feel}
+          onFeel={setFeel}
+          onPrompt={setPrompt}
+          studies={ranked}
+          focusedId={focused?.id ?? null}
+          bestId={ranked[0]?.id ?? null}
+          promptActive={promptActive}
+          loading={areaBusy}
+          hasArea={area !== null}
+          notice={notice}
+          onFocus={(study) => {
+            setTouched(true)
+            setActiveId(study.id)
+          }}
+          onOpen={(study) =>
+            void choose({ name: study.name, longitude: study.longitude, latitude: study.latitude })
+          }
+        />
       )}
     </div>
   )

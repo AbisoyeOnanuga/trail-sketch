@@ -7,6 +7,7 @@ import {
   type Location,
   type PlaceDetails,
 } from '../shared/contract.ts'
+import { nearbySchema, type Study } from '../shared/studies.ts'
 
 const CACHE_KEY = 'trail-sketch.last-card'
 
@@ -21,6 +22,19 @@ export async function searchPlaces(query: string): Promise<Location[]> {
   const parsed = searchResultSchema.safeParse(await response.json())
   if (!parsed.success) throw new Error('request_failed')
   return parsed.data.results
+}
+
+export async function loadNearby(latitude: number, longitude: number, radius: number): Promise<Study[]> {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    radius: String(radius),
+  })
+  const response = await fetch(`/api/nearby?${params}`)
+  if (!response.ok) throw new Error(await readError(response))
+  const parsed = nearbySchema.safeParse(await response.json())
+  if (!parsed.success) throw new Error('request_failed')
+  return parsed.data.studies
 }
 
 export async function loadPlace(latitude: number, longitude: number): Promise<PlaceDetails> {
@@ -82,6 +96,8 @@ export const errorCopy: Record<string, string> = {
   elevenlabs_failed: 'The reading did not come back. Try again.',
   card_unreadable: 'The study came back in a shape the sheet could not use.',
   geocode_failed: 'The place name could not be looked up.',
+  nearby_failed: 'The area lookup did not answer. Search a place, or try again.',
+  invalid_radius: 'That distance is outside the walk and the hike.',
   rate_limited: 'Too many studies in a short while. Wait a minute.',
   request_failed: 'The trail connection dropped.',
   query_too_short: 'Type a little more of the place name.',
