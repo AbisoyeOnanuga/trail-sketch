@@ -138,6 +138,15 @@ export function distanceMeters(fromLat: number, fromLon: number, toLat: number, 
   return 2 * earth * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
+export const CASUAL_REACH_METERS = 12_000
+
+export function reachLabel(meters: number): string {
+  if (!Number.isFinite(meters) || meters < 40) return 'Here'
+  if (meters <= 1_500) return 'Walkable'
+  if (meters <= 8_000) return 'Short ride'
+  return 'Farther out'
+}
+
 export function formatDistance(meters: number): string {
   if (!Number.isFinite(meters) || meters < 40) return 'Here'
   if (meters < 950) return `${Math.max(10, Math.round(meters / 10) * 10)} m`

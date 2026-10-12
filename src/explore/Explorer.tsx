@@ -6,6 +6,7 @@ import {
   formatDistance,
   interestIds,
   interestLabels,
+  reachLabel,
   type DistanceId,
   type FeelWord,
   type InterestId,
@@ -21,7 +22,7 @@ const palettes: Record<StudyKind, [string, string, string]> = {
   hill: ['#f3ead8', '#8d9378', '#3e4a38'],
 }
 
-function StudyArt({ kind }: { kind: StudyKind }) {
+export function StudyArt({ kind }: { kind: StudyKind }) {
   const [paper, mid, dark] = palettes[kind]
   if (kind === 'water') {
     return (
@@ -152,7 +153,7 @@ export function Explorer({
   onOpen,
 }: ExplorerProps) {
   const [draft, setDraft] = useState('')
-  const bestRef = useRef<HTMLElement | null>(null)
+  const bestRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     const node = bestRef.current
@@ -206,15 +207,15 @@ export function Explorer({
           onPrompt(draft.trim())
         }}
       >
-        <label className="sr" htmlFor="study-prompt">
-          Describe the study
+        <label className="field-label" htmlFor="study-prompt">
+          What to match
         </label>
         <input
           id="study-prompt"
           value={draft}
           maxLength={160}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="A stone bridge in flat light"
+          placeholder="Light, subject, or mood"
           autoComplete="off"
         />
         <button type="submit">Match</button>
@@ -224,35 +225,34 @@ export function Explorer({
       {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">
           {hasArea
-            ? 'Nothing named is this close. Try a hike, or search a place.'
-            : 'Location is off. These trips stay on the map, or search your area.'}
+            ? 'Nothing named is this close. Try a hike, or describe a subject.'
+            : 'Location is off. These are farther trips, or describe a subject nearby.'}
         </p>
       ) : null}
+      {studies.length > 2 ? <p className="scroll-cue">More places follow in this list.</p> : null}
       <div className="rail">
         {studies.map((study) => {
           const focused = study.id === focusedId
           const best = study.id === bestId
           return (
-            <article
+            <button
               key={study.id}
+              type="button"
               className={focused ? 'preview is-focused' : 'preview'}
               ref={best ? bestRef : undefined}
+              onClick={() => (focused ? onOpen(study) : onFocus(study))}
             >
-              <button type="button" className="preview-hit" onClick={() => onFocus(study)}>
-                <StudyArt kind={study.kind} />
+              <StudyArt kind={study.kind} />
+              <span className="preview-copy">
                 <p className="eyebrow">{feelLabels[study.feel]}</p>
                 <h3>{study.name}</h3>
                 <p>
-                  {hasArea ? formatDistance(study.distanceMeters) : 'A trip'}
+                  {hasArea ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'A trip'}
                   {best ? ` · ${promptActive ? 'Closest to that' : 'Fits what you look for'}` : ''}
                 </p>
-              </button>
-              {focused ? (
-                <button type="button" className="primary preview-open" onClick={() => onOpen(study)}>
-                  Open the study
-                </button>
-              ) : null}
-            </article>
+                <p className="preview-action">{focused ? 'Study this place' : 'Select'}</p>
+              </span>
+            </button>
           )
         })}
       </div>

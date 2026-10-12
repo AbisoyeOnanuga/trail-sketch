@@ -10,7 +10,9 @@ import {
   writeCachedCard,
 } from './api.ts'
 import { spots, type Spot } from './data/spots.ts'
-import { Explorer } from './explore/Explorer.tsx'
+import { Explorer, StudyArt } from './explore/Explorer.tsx'
+import { isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
+import { LibrarySheet } from './library/LibrarySheet.tsx'
 import { MapView } from './map/MapView.tsx'
 import { FieldSheet } from './sheet/FieldSheet.tsx'
 import {
@@ -22,9 +24,13 @@ import {
   type Medium,
 } from '../shared/contract.ts'
 import {
+  CASUAL_REACH_METERS,
   distanceChoices,
+  distanceMeters,
+  formatDistance,
   portraitFor,
   rankStudies,
+  reachLabel,
   type DistanceId,
   type FeelWord,
   type InterestId,
@@ -94,13 +100,15 @@ function samePlace(study: Study, location: Location): boolean {
   return Math.abs(study.longitude - location.longitude) < 0.0001 && Math.abs(study.latitude - location.latitude) < 0.0001
 }
 
-function toSpot(study: Study): Spot {
+function toSpot(study: Study, studied: boolean): Spot {
   return {
     id: study.id,
     name: study.name,
     longitude: study.longitude,
     latitude: study.latitude,
     hint: study.line,
+    kind: study.kind,
+    studied,
   }
 }
 
@@ -123,6 +131,9 @@ export default function App() {
   const [studies, setStudies] = useState<Study[]>([])
   const [areaBusy, setAreaBusy] = useState(false)
   const [touched, setTouched] = useState(false)
+  const [profile, setProfile] = useState<GoogleProfile | null>(() => readProfile())
+  const [visits, setVisits] = useState<Visit[]>(() => readVisits(readProfile()?.sub ?? null))
+  const [libraryOpen, setLibraryOpen] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
   const chooseId = useRef(0)
@@ -183,7 +194,9 @@ export default function App() {
     return null
   }, [selected, focused, area, touched])
 
-  const mapSpots = area ? studies.map(toSpot) : spots
+  const mapSpots = (area ? studies : travelStudies).map((study) =>
+    toSpot(study, isStudied(visits, study.latitude, study.longitude)),
+  )
 
   const choose = useCallback(async (location: Location) => {
     const id = chooseId.current + 1
@@ -202,12 +215,13 @@ export default function App() {
         name: location.name === 'This spot' ? place.name : location.name,
       })
       setWeather(place.weatherLine)
+      setVisits(noteVisitWeather(profile?.sub ?? null, location.latitude, location.longitude, place.weatherLine))
     } catch (error) {
       if (chooseId.current !== id) return
       const code = error instanceof Error ? error.message : 'request_failed'
       setNotice(errorCopy[code] ?? errorCopy.request_failed)
     }
-  }, [])
+  }, [profile])
 
   const acceptFix = useCallback((latitude: number, longitude: number) => {
     setAreaBusy(true)
@@ -245,28 +259,102 @@ export default function App() {
     setEditing(false)
   }
 
-  async function onSearch(event: FormEvent) {
-    event.preventDefault()
-    const trimmed = query.trim()
-    if (trimmed.length < 2) return
-    setBusy('search')
-    setNotice(null)
-    try {
-      setResults(await searchPlaces(trimmed))
-    } catch (error) {
-      const code = error instanceof Error ? error.message : 'request_failed'
-      setNotice(errorCopy[code] ?? errorCopy.request_failed)
+  const searchTimer = useRef(0)
+
+  function lookNearby(value: string) {
+    window.clearTimeout(searchTimer.current)
+    const trimmed = value.trim()
+    if (trimmed.length < 2) {
       setResults([])
-    } finally {
-      setBusy(null)
+      return
     }
+    searchTimer.current = window.setTimeout(() => {
+      void searchPlaces(trimmed)
+        .then((found) => {
+          const first = found[0]
+          if (area && first) {
+            const meters = distanceMeters(area.latitude, area.longitude, first.latitude, first.longitude)
+            if (meters > CASUAL_REACH_METERS) {
+              const nearest = ranked[0]
+              setResults([])
+              setNotice(
+                nearest
+                  ? `${first.name} is farther than a walk or a short ride. The nearest place to study is ${nearest.name}.`
+                  : `${first.name} is farther than a walk or a short ride.`,
+              )
+              if (nearest) {
+                setTouched(true)
+                setPick((current) => ({ ...current, id: nearest.id }))
+              }
+              return
+            }
+          }
+          setResults(found.slice(0, 3))
+        })
+        .catch((error: unknown) => {
+          const code = error instanceof Error ? error.message : 'request_failed'
+          setNotice(errorCopy[code] ?? errorCopy.request_failed)
+          setResults([])
+        })
+    }, 400)
+  }
+
+  function onSearch(event: FormEvent) {
+    event.preventDefault()
+    lookNearby(query)
   }
 
   function focusSearch(place: Location) {
     setResults([])
     setQuery('')
+    if (area) {
+      const meters = distanceMeters(area.latitude, area.longitude, place.latitude, place.longitude)
+      if (meters > CASUAL_REACH_METERS) {
+        const nearest = ranked[0]
+        setNotice(
+          nearest
+            ? `${place.name} is farther than a walk or a short ride. The nearest place to study is ${nearest.name}.`
+            : `${place.name} is farther than a walk or a short ride.`,
+        )
+        if (nearest) {
+          setTouched(true)
+          setPick((current) => ({ ...current, id: nearest.id }))
+        }
+        return
+      }
+    }
     acceptFix(place.latitude, place.longitude)
   }
+
+  function acceptStudy(study: Study) {
+    setVisits(
+      rememberVisit(
+        {
+          id: study.id,
+          name: study.name,
+          latitude: study.latitude,
+          longitude: study.longitude,
+          kind: study.kind,
+          studiedAt: new Date().toISOString(),
+          medium,
+          weatherLine: weather,
+        },
+        profile?.sub ?? null,
+      ),
+    )
+    void choose({ name: study.name, longitude: study.longitude, latitude: study.latitude })
+  }
+
+  const signIn = useCallback((next: GoogleProfile | null) => {
+    if (next) {
+      for (const visit of readVisits(null)) rememberVisit(visit, next.sub)
+      setProfile(next)
+      setVisits(readVisits(next.sub))
+      return
+    }
+    setProfile(null)
+    setVisits(readVisits(null))
+  }, [])
 
   function changeDistance(next: DistanceId) {
     if (area) {
@@ -332,7 +420,15 @@ export default function App() {
   }
 
   const promptActive = feel !== null || prompt.length > 0
-  const showExplorer = selected === null
+  const showExplorer = selected === null && !libraryOpen
+  const showStudy = selected !== null && !libraryOpen
+  const typed = query.trim().toLowerCase()
+  const visualMatches =
+    typed.length < 2
+      ? []
+      : ranked
+          .filter((study) => `${study.name} ${study.kind} ${study.feel} ${study.line}`.toLowerCase().includes(typed))
+          .slice(0, 4)
 
   return (
     <div className={showExplorer ? 'app has-explorer' : 'app'}>
@@ -343,20 +439,24 @@ export default function App() {
         </div>
         <form className="search" onSubmit={onSearch}>
           <label className="sr" htmlFor="place-search">
-            Search a place
+            Look nearby by subject
           </label>
           <input
             id="place-search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Park, river, overlook"
+            onChange={(event) => {
+              setQuery(event.target.value)
+              lookNearby(event.target.value)
+            }}
+            placeholder="Subject or mood nearby"
             autoComplete="off"
           />
-          <button type="submit" disabled={busy === 'search'}>
-            {busy === 'search' ? '…' : 'Find'}
-          </button>
+          <button type="submit">Look</button>
         </form>
-        <div className="mediums" role="radiogroup" aria-label="Medium">
+        <p className="field-label" id="medium-label">
+          Select your medium
+        </p>
+        <div className="mediums" role="radiogroup" aria-labelledby="medium-label">
           {mediums.map((item) => (
             <button
               key={item}
@@ -372,7 +472,10 @@ export default function App() {
         </div>
         <div className="bar-actions">
           <button type="button" className="locate" onClick={locate}>
-            I am here
+            Find places near me
+          </button>
+          <button type="button" className="locate" onClick={() => setLibraryOpen(true)}>
+            Studied{visits.length > 0 ? ` · ${visits.length}` : ''}
           </button>
           {saved && !selected ? (
             <button
@@ -395,21 +498,52 @@ export default function App() {
         </div>
       </header>
 
-      {results.length > 0 ? (
-        <ul className="results">
-          {results.map((place) => (
-            <li key={`${place.longitude}-${place.latitude}`}>
-              <button type="button" onClick={() => focusSearch(place)}>
-                {place.name}
-              </button>
-            </li>
+      {visualMatches.length > 0 || results.length > 0 ? (
+        <div className="suggest" role="listbox" aria-label="Nearby matches">
+          {visualMatches.map((study) => (
+            <button
+              key={study.id}
+              type="button"
+              className="suggest-row"
+              onClick={() => {
+                setTouched(true)
+                setPick((current) => ({ ...current, id: study.id }))
+                setQuery('')
+                setResults([])
+              }}
+            >
+              <StudyArt kind={study.kind} />
+              <span>
+                <strong>{study.name}</strong>
+                <small>
+                  {area ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'A trip'}
+                </small>
+              </span>
+            </button>
           ))}
-        </ul>
+          {results.map((place) => (
+            <button
+              key={`${place.longitude}-${place.latitude}`}
+              type="button"
+              className="suggest-row"
+              onClick={() => focusSearch(place)}
+            >
+              <span>
+                <strong>{place.name}</strong>
+                <small>
+                  {area
+                    ? reachLabel(distanceMeters(area.latitude, area.longitude, place.latitude, place.longitude))
+                    : 'Move the map here'}
+                </small>
+              </span>
+            </button>
+          ))}
+        </div>
       ) : null}
 
       <MapView spots={mapSpots} camera={camera} onPin={onPin} onGround={(location) => void choose(location)} />
 
-      {selected ? (
+      {showStudy ? (
         <FieldSheet
           location={selected}
           medium={medium}
@@ -447,11 +581,22 @@ export default function App() {
             setTouched(true)
             setPick({ key: rankingKey, id: study.id })
           }}
-          onOpen={(study) =>
-            void choose({ name: study.name, longitude: study.longitude, latitude: study.latitude })
-          }
+          onOpen={acceptStudy}
         />
       )}
+      {libraryOpen ? (
+        <LibrarySheet
+          visits={visits}
+          profile={profile}
+          onProfile={signIn}
+          onClose={() => setLibraryOpen(false)}
+          onOpen={(visit) => {
+            setLibraryOpen(false)
+            setMedium(visit.medium)
+            void choose({ name: visit.name, longitude: visit.longitude, latitude: visit.latitude })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

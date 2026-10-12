@@ -4,6 +4,8 @@ export type Spot = {
   longitude: number
   latitude: number
   hint: string
+  kind?: 'water' | 'park' | 'viewpoint' | 'architecture' | 'hill'
+  studied?: boolean
 }
 
 export const spots: Spot[] = [

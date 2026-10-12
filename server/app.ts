@@ -4,6 +4,7 @@ import { fieldCardRequestSchema } from '../shared/contract.ts'
 import { observeWeather, writeFieldCard } from './gemma.ts'
 import { allowRequest, clientKey } from './limit.ts'
 import { narrate } from './narrate.ts'
+import { googleClientId, verifyGoogleIdToken } from './google.ts'
 import { nearbyStudies } from './nearby.ts'
 import { reverseName, searchPlaces, weatherLine } from './places.ts'
 
@@ -17,6 +18,9 @@ const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   card_unreadable: 502,
   gemma_base_url_rejected: 500,
   geocode_failed: 502,
+  missing_google_client: 503,
+  google_rejected: 401,
+  invalid_google_token: 400,
   nearby_failed: 502,
   voice_rejected: 500,
   empty_script: 400,
@@ -33,6 +37,22 @@ export function createApp(): Hono {
   const app = new Hono()
 
   app.get('/api/health', (c) => c.json({ ok: true }))
+
+  app.get('/api/auth/config', (c) => c.json({ googleClientId: googleClientId() }))
+
+  app.post('/api/auth/google', async (c) => {
+    const key = `google:${clientKey(c.req.header('x-forwarded-for'))}`
+    if (!allowRequest(key, 10, 60_000)) return c.json({ error: 'rate_limited' }, 429)
+    const body = (await c.req.json().catch(() => null)) as { credential?: unknown } | null
+    const credential = typeof body?.credential === 'string' ? body.credential : ''
+    try {
+      const profile = await verifyGoogleIdToken(credential)
+      return c.json(profile)
+    } catch (error) {
+      const failed = fail(error)
+      return c.json(failed.body, failed.status)
+    }
+  })
 
   app.get('/api/search', async (c) => {
     const query = (c.req.query('q') ?? '').replace(/[^\p{L}\p{N}\s,'./-]/gu, '').trim().slice(0, 80)

@@ -7,6 +7,7 @@ const allowed = new Set([
   'GEMMA_BASE_URL',
   'ELEVENLABS_API_KEY',
   'ELEVENLABS_VOICE_ID',
+  'GOOGLE_CLIENT_ID',
   'PORT',
 ])
 

@@ -87,6 +87,31 @@ export function writeCachedCard(card: FieldCard): void {
   localStorage.setItem(CACHE_KEY, JSON.stringify(card))
 }
 
+export async function loadGoogleClientId(): Promise<string | null> {
+  const response = await fetch('/api/auth/config')
+  if (!response.ok) return null
+  const payload = (await response.json()) as { googleClientId?: unknown }
+  return typeof payload.googleClientId === 'string' && payload.googleClientId.length > 0
+    ? payload.googleClientId
+    : null
+}
+
+export async function verifyGoogle(credential: string): Promise<{ sub: string; name: string; email: string }> {
+  const response = await fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+  if (!response.ok) throw new Error(await readError(response))
+  const payload = (await response.json()) as { sub?: unknown; name?: unknown; email?: unknown }
+  if (typeof payload.sub !== 'string' || payload.sub.length === 0) throw new Error('google_rejected')
+  return {
+    sub: payload.sub,
+    name: typeof payload.name === 'string' ? payload.name : '',
+    email: typeof payload.email === 'string' ? payload.email : '',
+  }
+}
+
 export const errorCopy: Record<string, string> = {
   missing_gemma_key: 'The live study needs a Gemma key on the server. This sheet is a sample.',
   missing_elevenlabs_key: 'Narration needs an ElevenLabs key on the server.',
@@ -96,7 +121,10 @@ export const errorCopy: Record<string, string> = {
   elevenlabs_failed: 'The reading did not come back. Try again.',
   card_unreadable: 'The study came back in a shape the sheet could not use.',
   geocode_failed: 'The place name could not be looked up.',
-  nearby_failed: 'The area lookup did not answer. Search a place, or try again.',
+  nearby_failed: 'The area lookup did not answer. Try again in a moment.',
+  missing_google_client: 'Google sign-in needs a client id on the server.',
+  google_rejected: 'Google did not confirm that sign-in.',
+  invalid_google_token: 'That Google sign-in could not be read.',
   invalid_radius: 'That distance is outside the walk and the hike.',
   rate_limited: 'Too many studies in a short while. Wait a minute.',
   request_failed: 'The trail connection dropped.',

@@ -67,9 +67,9 @@ export function MapView({ spots, camera, onPin, onGround }: MapViewProps) {
     markersRef.current = spots.map((spot) => {
       const dot = document.createElement('button')
       dot.type = 'button'
-      dot.className = 'pin'
-      dot.title = spot.name
-      dot.setAttribute('aria-label', spot.name)
+      dot.className = `pin pin-${spot.kind ?? 'viewpoint'}${spot.studied ? ' is-studied' : ''}`
+      dot.title = spot.studied ? `${spot.name}, studied` : spot.name
+      dot.setAttribute('aria-label', dot.title)
       const active =
         camera !== null &&
         Math.abs(camera.longitude - spot.longitude) < 0.0001 &&
