@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import { loadGoogleClientId, verifyGoogle } from '../api.ts'
+import { CloseMark } from '../icons/glyphs.tsx'
 import { kindLabel, mediumName, type GoogleProfile, type Visit, visitStamp, writeProfile } from '../library.ts'
 
 type GoogleAccounts = {
@@ -94,6 +95,7 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDe
       <div className="sheet-top">
         <p className="eyebrow">Library</p>
         <button type="button" className="text-button" onClick={onClose}>
+          <CloseMark />
           Close
         </button>
       </div>

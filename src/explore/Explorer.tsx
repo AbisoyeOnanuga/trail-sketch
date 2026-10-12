@@ -15,6 +15,7 @@ import {
   type Study,
   type StudyKind,
 } from '../../shared/studies.ts'
+import { BackMark, MapMark } from '../icons/glyphs.tsx'
 import { ReachMark } from '../icons/marks.tsx'
 
 const palettes: Record<StudyKind, [string, string, string]> = {
@@ -125,6 +126,7 @@ function InterestGate({
         ))}
       </div>
       <button type="button" className="primary" disabled={picked.length === 0} onClick={() => onSave(picked)}>
+        <MapMark />
         Show the area
       </button>
     </section>
@@ -194,9 +196,10 @@ export function Explorer({
     <section className="explorer" aria-label="Places to study">
       <div className="explorer-nav">
         <button type="button" className="back-button" aria-label="Back" onClick={onEditInterests}>
-          <span aria-hidden="true">←</span>
+          <BackMark />
         </button>
         <button type="button" className="use-map" onClick={onUseMap}>
+          <MapMark />
           Use the map
         </button>
       </div>

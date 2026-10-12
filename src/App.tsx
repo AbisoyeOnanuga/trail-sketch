@@ -12,7 +12,8 @@ import {
 import { spots, type Spot } from './data/spots.ts'
 import { Explorer, PlacePreview } from './explore/Explorer.tsx'
 import { forgetVisit, isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
-import { LibraryMark, LocateMark, MediumMark } from './icons/marks.tsx'
+import { HideMark, LibraryMark, LocateMark, PlacesMark } from './icons/glyphs.tsx'
+import { MediumMark } from './icons/marks.tsx'
 import { LibrarySheet } from './library/LibrarySheet.tsx'
 import { MapView } from './map/MapView.tsx'
 import { FieldSheet } from './sheet/FieldSheet.tsx'
@@ -649,10 +650,12 @@ export default function App() {
       {showPlacesDock ? (
         <div className={places === 'hidden' ? 'places-dock is-hidden' : 'places-dock'}>
           <button type="button" className="primary" onClick={() => setPlaces('open')}>
+            <PlacesMark />
             Show places
           </button>
           {places === 'map' ? (
             <button type="button" className="text-button" onClick={() => setPlaces('hidden')}>
+              <HideMark />
               Hide
             </button>
           ) : null}

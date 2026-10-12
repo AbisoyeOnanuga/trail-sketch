@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { mediumLabels, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
 import { PlacePreview } from '../explore/Explorer.tsx'
 import { usePaneScroll } from '../scroll/usePaneScroll.ts'
+import { CloseMark, DirectionsMark, HearMark, LocateMark, PlanMark } from '../icons/glyphs.tsx'
 import { distanceMeters, formatDistance, type StudyKind } from '../../shared/studies.ts'
 
 type FieldSheetProps = {
@@ -62,6 +63,7 @@ export function FieldSheet({
       <div className="sheet-top">
         <p className="eyebrow">{mediumLabels[medium]}</p>
         <button type="button" className="text-button" onClick={onClose}>
+          <CloseMark />
           Close
         </button>
       </div>
@@ -75,10 +77,12 @@ export function FieldSheet({
       <p className="directions">
         {fromHere === null ? null : fromHere < 40 ? 'You are at this place.' : `${formatDistance(fromHere)} from you.`}
         <a href={walkingDirections(here, location)} target="_blank" rel="noopener noreferrer">
+          <DirectionsMark />
           Walking directions
         </a>
         {here ? null : (
           <button type="button" className="text-button" onClick={onFindHere}>
+            <LocateMark />
             Show where I am
           </button>
         )}
@@ -134,12 +138,14 @@ export function FieldSheet({
       ) : null}
 
       <div className="sheet-actions">
-        <button type="button" className="primary" onClick={onWrite} disabled={busy !== null}>
-          {busy === 'card' ? 'Writing a plan…' : 'Suggest a plan'}
-        </button>
-        <button type="button" className="secondary" onClick={onListen} disabled={busy !== null}>
-          {busy === 'voice' ? 'Playing…' : 'Hear this plan'}
-        </button>
+          <button type="button" className="primary" onClick={onWrite} disabled={busy !== null}>
+            <PlanMark />
+            {busy === 'card' ? 'Writing a plan…' : 'Suggest a plan'}
+          </button>
+          <button type="button" className="secondary" onClick={onListen} disabled={busy !== null}>
+            <HearMark />
+            {busy === 'voice' ? 'Playing…' : 'Hear this plan'}
+          </button>
       </div>
       </div>
     </section>

@@ -118,10 +118,23 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding: 0.55rem 0.9rem;
 }
 
-.search button, .locate, .primary, .secondary, .text-button {
+.search button, .locate, .primary, .secondary {
   border: 0;
   border-radius: 999px;
   padding: 0.55rem 0.9rem;
+}
+
+.search button, .locate, .primary, .secondary, .text-button, .use-map, .back-button, .directions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.mark-emoji {
+  font-size: 1rem;
+  line-height: 1;
+  flex: 0 0 auto;
 }
 
 .search button, .primary {
@@ -211,6 +224,13 @@ button:disabled { cursor: progress; opacity: 0.7; }
   justify-content: space-between;
   gap: 0.5rem;
   align-items: center;
+}
+
+.sheet-actions { flex-wrap: wrap; }
+
+.sheet-actions .primary,
+.sheet-actions .secondary {
+  white-space: nowrap;
 }
 
 .sheet h2 {
@@ -647,6 +667,8 @@ button:disabled { cursor: progress; opacity: 0.7; }
   .study-hero { grid-template-columns: 5.6rem 1fr; }
   .study-hero .study-art { height: 4rem; }
   .sheet h2 { font-size: 1.55rem; }
+  .sheet-actions { flex-direction: column; align-items: stretch; }
+  .sheet-actions .primary, .sheet-actions .secondary { width: 100%; }
 }
 
 @media (min-width: 960px) {
