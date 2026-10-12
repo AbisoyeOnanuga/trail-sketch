@@ -332,6 +332,8 @@ button:disabled { cursor: progress; opacity: 0.7; }
   align-items: center;
 }
 
+.explorer-tools { display: flex; gap: 0.2rem; }
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -373,9 +375,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
 }
 
 .rail {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
   overflow-x: hidden;
   overflow-y: auto;
   max-height: 13rem;
@@ -383,6 +382,12 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding-right: 0.1rem;
   scrollbar-width: thin;
   scrollbar-color: var(--viridian) transparent;
+}
+
+.rail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .preview {
@@ -427,6 +432,7 @@ button:disabled { cursor: progress; opacity: 0.7; }
   height: 3.5rem;
   border-radius: 0.7rem;
   border: 1px solid var(--line);
+  object-fit: cover;
 }
 
 .preview-action { color: var(--viridian); }
@@ -469,6 +475,9 @@ button:disabled { cursor: progress; opacity: 0.7; }
 .suggest-row .study-art { height: 2.6rem; }
 
 .visit-list { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.visit-list li { display: flex; align-items: center; gap: 0.35rem; }
+.visit-list li > button:first-child { flex: 1; width: auto; }
+.visit-list li > .text-button { width: auto; border: 0; padding: 0.28rem 0.4rem; }
 .visit-list button {
   width: 100%;
   display: flex;
@@ -559,18 +568,97 @@ button:disabled { cursor: progress; opacity: 0.7; }
 
   .explorer, .gate { left: 1rem; right: 1rem; }
 
-  .rail {
+  .rail { max-height: 18rem; }
+  .rail-content {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    max-height: 18rem;
   }
 
   .preview .study-art { height: 4.4rem; }
 }
 
+.places-dock {
+  position: absolute;
+  z-index: 3;
+  left: 0.7rem;
+  right: 0.7rem;
+  bottom: max(0.45rem, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  background: color-mix(in srgb, var(--sheet) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.places-dock.is-hidden { right: auto; padding: 0.2rem; }
+.places-dock .primary, .places-dock .text-button { padding: 0.35rem 0.8rem; }
+
+.app.has-places-dock .map .maplibregl-ctrl-bottom-right { bottom: 4.2rem; }
+
+/* Spinners adapted from Uiverse Galaxy (MIT): AHMED-MIT nested ring and AbanoubMagdy1 ring.
+   https://github.com/uiverse-io/galaxy */
+.work {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.7rem;
+}
+
+.work p { margin: 0; color: var(--muted); }
+
+.ink-spin {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  border-color: var(--viridian) transparent;
+  animation: spin-turn 1s infinite linear;
+}
+
+.ink-spin::before,
+.ink-spin::after {
+  content: "";
+  grid-area: 1 / 1;
+  margin: 2px;
+  border: inherit;
+  border-radius: 50%;
+}
+
+.ink-spin::before {
+  border-color: var(--ink) transparent;
+  animation: inherit;
+  animation-duration: 0.5s;
+  animation-direction: reverse;
+}
+
+.ink-spin::after { margin: 7px; }
+
+.voice-spin {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--cadmium);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  animation: spin-turn 1.2s infinite linear;
+}
+
+.sheet.is-busy .study-art { animation: wash 1.6s ease-in-out infinite; }
+
+@keyframes spin-turn { to { transform: rotate(1turn); } }
+@keyframes wash {
+  50% { transform: scale(1.04); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet { animation: none; }
   .pin.is-active { transform: none; }
+  .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art { animation: none; }
 }
 
 @keyframes rise {

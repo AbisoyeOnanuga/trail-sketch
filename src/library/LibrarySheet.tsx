@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import { loadGoogleClientId, verifyGoogle } from '../api.ts'
 import { kindLabel, mediumName, type GoogleProfile, type Visit, visitStamp, writeProfile } from '../library.ts'
 
@@ -23,10 +24,13 @@ type LibrarySheetProps = {
   onProfile: (profile: GoogleProfile | null) => void
   onClose: () => void
   onOpen: (visit: Visit) => void
+  onDelete: (visit: Visit) => void
 }
 
-export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen }: LibrarySheetProps) {
+export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDelete }: LibrarySheetProps) {
   const buttonRef = useRef<HTMLDivElement>(null)
+  const [pane, setPane] = useState<HTMLElement | null>(null)
+  usePaneScroll(pane)
   const [clientId, setClientId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -85,7 +89,8 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen }: Li
   }, [clientId, profile, onProfile])
 
   return (
-    <section className="sheet library" aria-label="Studied places">
+    <section className="sheet library" aria-label="Studied places" ref={setPane}>
+      <div className="sheet-body">
       <div className="sheet-top">
         <p className="eyebrow">Library</p>
         <button type="button" className="text-button" onClick={onClose}>
@@ -134,10 +139,14 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen }: Li
                   </small>
                 </span>
               </button>
+              <button type="button" className="text-button" onClick={() => onDelete(visit)}>
+                Delete
+              </button>
             </li>
           ))}
         </ul>
       )}
+      </div>
     </section>
   )
 }

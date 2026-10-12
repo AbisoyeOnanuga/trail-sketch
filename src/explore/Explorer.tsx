@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { placePhoto } from '../photos.ts'
+import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import {
   distanceChoices,
   feelLabels,
@@ -21,6 +23,23 @@ const palettes: Record<StudyKind, [string, string, string]> = {
   viewpoint: ['#f6e6d4', '#d4532b', '#2c4a68'],
   architecture: ['#f3ecdf', '#8a7360', '#2a2723'],
   hill: ['#f3ead8', '#8d9378', '#3e4a38'],
+}
+
+export function PlacePreview({ kind, name }: { kind: StudyKind; name: string }) {
+  const [photo, setPhoto] = useState<string | null>(null)
+
+  useEffect(() => {
+    let live = true
+    void placePhoto(name).then((source) => {
+      if (live) setPhoto(source)
+    })
+    return () => {
+      live = false
+    }
+  }, [name])
+
+  if (photo) return <img className="study-art" src={photo} alt="" />
+  return <StudyArt kind={kind} />
 }
 
 export function StudyArt({ kind }: { kind: StudyKind }) {
@@ -131,6 +150,7 @@ type ExplorerProps = {
   notice: string | null
   onFocus: (study: Study) => void
   onOpen: (study: Study) => void
+  onUseMap: () => void
 }
 
 export function Explorer({
@@ -152,9 +172,12 @@ export function Explorer({
   notice,
   onFocus,
   onOpen,
+  onUseMap,
 }: ExplorerProps) {
   const [draft, setDraft] = useState('')
+  const [rail, setRail] = useState<HTMLDivElement | null>(null)
   const bestRef = useRef<HTMLButtonElement | null>(null)
+  usePaneScroll(rail)
 
   useEffect(() => {
     const node = bestRef.current
@@ -185,9 +208,14 @@ export function Explorer({
             </button>
           ))}
         </div>
-        <button type="button" className="text-button" onClick={onEditInterests}>
-          Interests
-        </button>
+        <div className="explorer-tools">
+          <button type="button" className="text-button" onClick={onUseMap}>
+            Use the map
+          </button>
+          <button type="button" className="text-button" onClick={onEditInterests}>
+            Interests
+          </button>
+        </div>
       </div>
       <div className="chips feel-row" role="group" aria-label="Feel of the study">
         {feelWords.map((word) => (
@@ -232,7 +260,8 @@ export function Explorer({
         </p>
       ) : null}
       {studies.length > 2 ? <p className="scroll-cue">More places follow in this list.</p> : null}
-      <div className="rail">
+      <div className="rail" ref={setRail}>
+        <div className="rail-content">
         {studies.map((study) => {
           const focused = study.id === focusedId
           const best = study.id === bestId
@@ -244,7 +273,7 @@ export function Explorer({
               ref={best ? bestRef : undefined}
               onClick={() => (focused ? onOpen(study) : onFocus(study))}
             >
-              <StudyArt kind={study.kind} />
+              <PlacePreview kind={study.kind} name={study.name} />
               <span className="preview-copy">
                 <p className="eyebrow">{feelLabels[study.feel]}</p>
                 <h3>{study.name}</h3>
@@ -257,6 +286,7 @@ export function Explorer({
             </button>
           )
         })}
+        </div>
       </div>
     </section>
   )

@@ -65,6 +65,12 @@ export function rememberVisit(visit: Visit, sub: string | null): Visit[] {
   return next
 }
 
+export function forgetVisit(id: string, studiedAt: string, sub: string | null): Visit[] {
+  const next = readVisits(sub).filter((visit) => visit.id !== id || visit.studiedAt !== studiedAt)
+  localStorage.setItem(visitKey(sub), JSON.stringify(next))
+  return next
+}
+
 export function noteVisitWeather(
   sub: string | null,
   latitude: number,

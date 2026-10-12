@@ -19,7 +19,7 @@ export type DistanceId = (typeof distanceChoices)[number]['id']
 export const feelLabels: Record<FeelWord, string> = {
   still: 'Still',
   bright: 'Bright',
-  tangled: 'Tangled',
+  tangled: 'Trees',
   open: 'Open',
   weathered: 'Weathered',
   quiet: 'Quiet',

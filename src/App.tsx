@@ -10,8 +10,8 @@ import {
   writeCachedCard,
 } from './api.ts'
 import { spots, type Spot } from './data/spots.ts'
-import { Explorer, StudyArt } from './explore/Explorer.tsx'
-import { isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
+import { Explorer, PlacePreview } from './explore/Explorer.tsx'
+import { forgetVisit, isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
 import { LibraryMark, LocateMark, MediumMark } from './icons/marks.tsx'
 import { LibrarySheet } from './library/LibrarySheet.tsx'
 import { MapView } from './map/MapView.tsx'
@@ -135,6 +135,7 @@ export default function App() {
   const [profile, setProfile] = useState<GoogleProfile | null>(() => readProfile())
   const [visits, setVisits] = useState<Visit[]>(() => readVisits(readProfile()?.sub ?? null))
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [places, setPlaces] = useState<'open' | 'map' | 'hidden'>('open')
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
   const chooseId = useRef(0)
@@ -421,7 +422,9 @@ export default function App() {
   }
 
   const promptActive = feel !== null || prompt.length > 0
-  const showExplorer = selected === null && !libraryOpen
+  const interestGate = interests.length === 0 || editing
+  const showExplorer = selected === null && !libraryOpen && (places === 'open' || interestGate)
+  const showPlacesDock = selected === null && !libraryOpen && !interestGate && places !== 'open'
   const showStudy = selected !== null && !libraryOpen
   const typed = query.trim().toLowerCase()
   const visualMatches =
@@ -432,7 +435,7 @@ export default function App() {
           .slice(0, 4)
 
   return (
-    <div className={showExplorer ? 'app has-explorer' : 'app'}>
+    <div className={showExplorer ? 'app has-explorer' : showPlacesDock ? 'app has-places-dock' : 'app'}>
       <header className="bar">
         <div className="brand">
           <p className="mark">Trail Sketch</p>
@@ -516,7 +519,7 @@ export default function App() {
                 setResults([])
               }}
             >
-              <StudyArt kind={study.kind} />
+              <PlacePreview kind={study.kind} name={study.name} />
               <span>
                 <strong>{study.name}</strong>
                 <small>
@@ -572,7 +575,7 @@ export default function App() {
           onWrite={() => void writeStudy()}
           onListen={() => void listen()}
         />
-      ) : (
+      ) : showExplorer ? (
         <Explorer
           interests={interests}
           editing={editing}
@@ -595,8 +598,21 @@ export default function App() {
             setPick({ key: rankingKey, id: study.id })
           }}
           onOpen={acceptStudy}
+          onUseMap={() => setPlaces('map')}
         />
-      )}
+      ) : null}
+      {showPlacesDock ? (
+        <div className={places === 'hidden' ? 'places-dock is-hidden' : 'places-dock'}>
+          <button type="button" className="primary" onClick={() => setPlaces('open')}>
+            Show places
+          </button>
+          {places === 'map' ? (
+            <button type="button" className="text-button" onClick={() => setPlaces('hidden')}>
+              Hide
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {libraryOpen ? (
         <LibrarySheet
           visits={visits}
@@ -608,6 +624,7 @@ export default function App() {
             setMedium(visit.medium)
             void choose({ name: visit.name, longitude: visit.longitude, latitude: visit.latitude })
           }}
+          onDelete={(visit) => setVisits(forgetVisit(visit.id, visit.studiedAt, profile?.sub ?? null))}
         />
       ) : null}
     </div>

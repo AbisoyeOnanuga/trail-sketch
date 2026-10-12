@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { mediumLabels, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
-import { StudyArt } from '../explore/Explorer.tsx'
+import { PlacePreview } from '../explore/Explorer.tsx'
+import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import type { StudyKind } from '../../shared/studies.ts'
 
 type FieldSheetProps = {
@@ -27,13 +29,16 @@ export function FieldSheet({
   onListen,
   kind,
 }: FieldSheetProps) {
+  const [pane, setPane] = useState<HTMLElement | null>(null)
+  usePaneScroll(pane)
   const study = card ?? null
   const pigment = usesPigment(medium)
   const values = study?.values ?? ['Light', 'Middle', 'Dark']
   const palette = study && pigment ? study.palette : []
 
   return (
-    <section className="sheet" aria-label="Field study">
+    <section className={busy ? 'sheet is-busy' : 'sheet'} aria-label="Field study" ref={setPane}>
+      <div className="sheet-body">
       <div className="sheet-top">
         <p className="eyebrow">{mediumLabels[medium]}</p>
         <button type="button" className="text-button" onClick={onClose}>
@@ -41,7 +46,7 @@ export function FieldSheet({
         </button>
       </div>
       <div className="study-hero">
-        {kind ? <StudyArt kind={kind} /> : null}
+        {kind ? <PlacePreview kind={kind} name={study?.placeName ?? location.name} /> : null}
         <div>
           <h2>{study?.placeName ?? location.name}</h2>
           <p className="weather">{study?.weatherLine || weatherLine || 'Reading the light…'}</p>
@@ -80,6 +85,19 @@ export function FieldSheet({
       </p>
       {study ? <p className="leave">{study.leaveBefore}</p> : null}
 
+      {busy === 'card' ? (
+        <div className="work" role="status">
+          <span className="ink-spin" />
+          <p>Writing a plan for this place.</p>
+        </div>
+      ) : null}
+      {busy === 'voice' ? (
+        <div className="work" role="status">
+          <span className="voice-spin" />
+          <p>Reading this plan aloud.</p>
+        </div>
+      ) : null}
+
       <div className="sheet-actions">
         <button type="button" className="primary" onClick={onWrite} disabled={busy !== null}>
           {busy === 'card' ? 'Writing a plan…' : 'Suggest a plan'}
@@ -87,6 +105,7 @@ export function FieldSheet({
         <button type="button" className="secondary" onClick={onListen} disabled={busy !== null || !study}>
           {busy === 'voice' ? 'Playing…' : 'Hear this plan'}
         </button>
+      </div>
       </div>
     </section>
   )
