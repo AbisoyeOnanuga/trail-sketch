@@ -71,8 +71,8 @@ export async function writeFieldCard(
     ],
   })
 
-  let response: Response | null = null
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  let response: Response
+  try {
     response = await fetch(endpoint.url, {
       method: 'POST',
       headers: {
@@ -80,14 +80,30 @@ export async function writeFieldCard(
         'Content-Type': 'application/json',
       },
       body,
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(45_000),
     })
-    if (response.ok || response.status < 500) break
+  } catch {
+    throw new Error('gemma_failed')
   }
 
-  if (!response?.ok) {
-    const status = response?.status ?? 0
-    throw new Error(status === 401 || status === 403 ? 'gemma_rejected' : 'gemma_failed')
+  if (!response.ok && response.status >= 500) {
+    try {
+      response = await fetch(endpoint.url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${endpoint.key}`,
+          'Content-Type': 'application/json',
+        },
+        body,
+        signal: AbortSignal.timeout(45_000),
+      })
+    } catch {
+      throw new Error('gemma_failed')
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(response.status === 401 || response.status === 403 ? 'gemma_rejected' : 'gemma_failed')
   }
 
   const payload = (await response.json()) as {
