@@ -6,17 +6,21 @@ import type { Location } from '../../shared/contract.ts'
 import type { Spot } from '../data/spots.ts'
 import { pinMarkup } from '../icons/pins.ts'
 
+type MapPoint = { longitude: number; latitude: number }
+
 type MapViewProps = {
   spots: Spot[]
   camera: Location | null
+  here: MapPoint | null
   onPin: (location: Location) => void
   onGround: (location: Location) => void
 }
 
-export function MapView({ spots, camera, onPin, onGround }: MapViewProps) {
+export function MapView({ spots, camera, here, onPin, onGround }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const markersRef = useRef<Marker[]>([])
+  const hereMarkerRef = useRef<Marker | null>(null)
   const onPinRef = useRef(onPin)
   const onGroundRef = useRef(onGround)
 
@@ -91,16 +95,56 @@ export function MapView({ spots, camera, onPin, onGround }: MapViewProps) {
 
   const cameraLongitude = camera?.longitude
   const cameraLatitude = camera?.latitude
+  const hereLongitude = here?.longitude
+  const hereLatitude = here?.latitude
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (hereLongitude === undefined || hereLatitude === undefined) {
+      hereMarkerRef.current?.remove()
+      hereMarkerRef.current = null
+      return
+    }
+    const dot = document.createElement('div')
+    dot.className = 'here-pin'
+    dot.title = 'You are here'
+    dot.setAttribute('role', 'img')
+    dot.setAttribute('aria-label', 'You are here')
+    hereMarkerRef.current?.remove()
+    hereMarkerRef.current = new Marker({ element: dot }).setLngLat([hereLongitude, hereLatitude]).addTo(map)
+  }, [hereLongitude, hereLatitude])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || cameraLongitude === undefined || cameraLatitude === undefined) return
+    const hasHere = hereLongitude !== undefined && hereLatitude !== undefined
+    const apart =
+      hasHere &&
+      (Math.abs(cameraLongitude - hereLongitude) > 0.0008 || Math.abs(cameraLatitude - hereLatitude) > 0.0008)
+    if (apart) {
+      const west = Math.min(cameraLongitude, hereLongitude)
+      const east = Math.max(cameraLongitude, hereLongitude)
+      const south = Math.min(cameraLatitude, hereLatitude)
+      const north = Math.max(cameraLatitude, hereLatitude)
+      const span = Math.max(east - west, north - south)
+      if (span < 0.45) {
+        map.fitBounds(
+          [
+            [west, south],
+            [east, north],
+          ],
+          { padding: { top: 150, bottom: 220, left: 48, right: 48 }, maxZoom: 15, essential: true },
+        )
+        return
+      }
+    }
     map.flyTo({
       center: [cameraLongitude, cameraLatitude],
       zoom: Math.max(map.getZoom(), 13),
       essential: true,
     })
-  }, [cameraLongitude, cameraLatitude])
+  }, [cameraLongitude, cameraLatitude, hereLongitude, hereLatitude])
 
   return <div ref={containerRef} className="map" />
 }

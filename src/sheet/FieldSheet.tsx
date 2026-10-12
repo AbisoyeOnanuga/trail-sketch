@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { mediumLabels, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
 import { PlacePreview } from '../explore/Explorer.tsx'
 import { usePaneScroll } from '../scroll/usePaneScroll.ts'
-import type { StudyKind } from '../../shared/studies.ts'
+import { distanceMeters, formatDistance, type StudyKind } from '../../shared/studies.ts'
 
 type FieldSheetProps = {
   location: Location
@@ -10,11 +10,20 @@ type FieldSheetProps = {
   card: FieldCard | null
   weatherLine: string
   notice: string | null
+  planNote: string | null
+  planFromGemma: boolean
+  here: { longitude: number; latitude: number } | null
   busy: 'card' | 'voice' | null
   onClose: () => void
   onWrite: () => void
   onListen: () => void
+  onFindHere: () => void
   kind: StudyKind | null
+}
+
+function walkingDirections(from: { longitude: number; latitude: number }, to: Location): string {
+  const route = `${from.latitude},${from.longitude};${to.latitude},${to.longitude}`
+  return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${encodeURIComponent(route)}`
 }
 
 export function FieldSheet({
@@ -23,16 +32,23 @@ export function FieldSheet({
   card,
   weatherLine,
   notice,
+  planNote,
+  planFromGemma,
+  here,
   busy,
   onClose,
   onWrite,
   onListen,
+  onFindHere,
   kind,
 }: FieldSheetProps) {
   const [pane, setPane] = useState<HTMLElement | null>(null)
   usePaneScroll(pane)
   const study = card ?? null
   const pigment = usesPigment(medium)
+  const fromHere = here
+    ? distanceMeters(here.latitude, here.longitude, location.latitude, location.longitude)
+    : null
   const values = study?.values ?? ['Light', 'Middle', 'Dark']
   const palette = study && pigment ? study.palette : []
 
@@ -52,8 +68,27 @@ export function FieldSheet({
           <p className="weather">{study?.weatherLine || weatherLine || 'Reading the light…'}</p>
         </div>
       </div>
+      {here && fromHere !== null ? (
+        <p className="directions">
+          {fromHere < 40 ? 'You are at this place.' : `${formatDistance(fromHere)} from you.`}
+          <a href={walkingDirections(here, location)} target="_blank" rel="noopener noreferrer">
+            Walking directions
+          </a>
+        </p>
+      ) : (
+        <p className="directions">
+          <button type="button" className="text-button" onClick={onFindHere}>
+            Show where I am
+          </button>
+          Walking directions start from that blue dot.
+        </p>
+      )}
+      {planNote ? (
+        <p className={planFromGemma ? 'plan-note is-live' : 'plan-note'} role="status">
+          {planNote}
+        </p>
+      ) : null}
       {notice ? <p className="notice">{notice}</p> : null}
-      {study?.source === 'sample' ? <p className="sample-flag">Sample study</p> : null}
 
       <p className="field-label">Suggested values</p>
       <p className="hint-inline">Light, middle, and dark are starting tones for the page. You choose what stays.</p>
@@ -102,7 +137,7 @@ export function FieldSheet({
         <button type="button" className="primary" onClick={onWrite} disabled={busy !== null}>
           {busy === 'card' ? 'Writing a plan…' : 'Suggest a plan'}
         </button>
-        <button type="button" className="secondary" onClick={onListen} disabled={busy !== null || !study}>
+        <button type="button" className="secondary" onClick={onListen} disabled={busy !== null}>
           {busy === 'voice' ? 'Playing…' : 'Hear this plan'}
         </button>
       </div>

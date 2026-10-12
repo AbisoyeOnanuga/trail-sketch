@@ -102,6 +102,7 @@ export async function writeFieldCard(
     }
   }
 
+  if (response.status === 429) throw new Error('gemma_rate_limited')
   if (!response.ok) {
     throw new Error(response.status === 401 || response.status === 403 ? 'gemma_rejected' : 'gemma_failed')
   }

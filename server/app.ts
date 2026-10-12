@@ -14,6 +14,7 @@ const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   gemma_rejected: 401,
   elevenlabs_rejected: 401,
   gemma_failed: 502,
+  gemma_rate_limited: 429,
   elevenlabs_failed: 502,
   card_unreadable: 502,
   gemma_base_url_rejected: 500,

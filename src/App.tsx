@@ -41,24 +41,32 @@ import {
 
 const INTERESTS_KEY = 'trail-sketch.interests'
 
-function sampleCard(location: Location, medium: Medium, sky: string): FieldCard {
+function localPlan(location: Location, medium: Medium, sky: string): FieldCard {
   const pigment = usesPigment(medium)
+  const weather = sky || 'The weather is not in yet'
+  const colors = pigment ? ' The starting colors are a warm red, a green, and a blue.' : ''
   return {
     placeName: location.name,
     longitude: location.longitude,
     latitude: location.latitude,
     medium,
-    motif: pigment ? 'A color mass against a quiet ground' : 'One dark shape against a light field',
-    values: ['Lit edge', 'Middle tone', 'The darkest note'],
+    motif: pigment ? 'Warm color against a quiet ground' : 'A dark shape against a light field',
+    values: ['Light', 'Middle', 'Dark'],
     palette: pigment ? ['#d4532b', '#1f6b56', '#2f4d6e'] : [],
-    subject:
-      'This is a sample so the sheet has a shape before a live study. Stand where you will work, then write it again once Gemma is connected.',
-    leaveBefore: 'Leave when the shadow of your hand crosses the motif.',
-    spokenScript: `You are at ${location.name}. Look for one lit edge, a middle tone, and a single dark note. Draw or paint that, then put the phone away.`,
-    weatherLine: sky || 'Light not read yet',
+    subject: `${location.name}. ${weather}. Start with light, middle, and dark.${colors}`,
+    leaveBefore: 'Stop when the light you came for has changed.',
+    spokenScript: `You are at ${location.name}. ${weather}. For ${mediumLabels[medium]}, start with a light, a middle, and a dark.${colors}`,
+    weatherLine: weather,
     generatedAt: new Date().toISOString(),
     source: 'sample',
   }
+}
+
+function fallbackNote(code: string): string {
+  const tail = 'These notes use the place, the weather, and the starting tones. Hear this plan can still read them.'
+  if (code === 'rate_limited' || code === 'gemma_rate_limited') return `Gemma is busy. ${tail}`
+  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return `Gemma is not available. ${tail}`
+  return `Gemma did not answer. ${tail}`
 }
 
 function readInterests(): InterestId[] {
@@ -129,6 +137,9 @@ export default function App() {
   const [feel, setFeel] = useState<FeelWord | null>(null)
   const [prompt, setPrompt] = useState('')
   const [area, setArea] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [here, setHere] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [planNote, setPlanNote] = useState<string | null>(null)
+  const [planFromGemma, setPlanFromGemma] = useState(false)
   const [studies, setStudies] = useState<Study[]>([])
   const [areaBusy, setAreaBusy] = useState(false)
   const [touched, setTouched] = useState(false)
@@ -206,6 +217,8 @@ export default function App() {
     setSelected(location)
     setCard(null)
     setNotice(null)
+    setPlanNote(null)
+    setPlanFromGemma(false)
     setResults([])
     setWeather('')
     try {
@@ -234,22 +247,36 @@ export default function App() {
     setArea({ latitude, longitude })
   }, [])
 
-  const locate = useCallback(() => {
+  const readPosition = useCallback((onFix: (latitude: number, longitude: number) => void) => {
     if (!navigator.geolocation) {
       setNotice('This browser cannot share a location.')
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => acceptFix(position.coords.latitude, position.coords.longitude),
+      (position) => {
+        setHere({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+        onFix(position.coords.latitude, position.coords.longitude)
+      },
       () => setNotice('Location stayed off. Search a place or pick a trip.'),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
     )
-  }, [acceptFix])
+  }, [])
+
+  const locate = useCallback(() => {
+    readPosition((latitude, longitude) => acceptFix(latitude, longitude))
+  }, [acceptFix, readPosition])
+
+  const findHere = useCallback(() => {
+    readPosition(() => setNotice(null))
+  }, [readPosition])
 
   useEffect(() => {
     if (interests.length === 0 || area || !navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
-      (position) => acceptFix(position.coords.latitude, position.coords.longitude),
+      (position) => {
+        setHere({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+        acceptFix(position.coords.latitude, position.coords.longitude)
+      },
       () => setNotice('Location stayed off. Search a place or pick a trip.'),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
     )
@@ -375,23 +402,25 @@ export default function App() {
       const next = await requestFieldCard({ ...selected, medium })
       setCard(next)
       writeCachedCard(next)
+      setPlanFromGemma(true)
+      setPlanNote('Gemma wrote this plan.')
     } catch (error) {
       const code = error instanceof Error ? error.message : 'request_failed'
-      if (code === 'missing_gemma_key') {
-        setCard(sampleCard(selected, medium, weather))
-      }
-      setNotice(errorCopy[code] ?? errorCopy.request_failed)
+      setCard(localPlan(selected, medium, weather))
+      setPlanFromGemma(false)
+      setPlanNote(fallbackNote(code))
     } finally {
       setBusy(null)
     }
   }
 
   async function listen() {
-    if (!card) return
+    if (!selected) return
+    const script = card?.spokenScript ?? localPlan(selected, medium, weather).spokenScript
     setBusy('voice')
     setNotice(null)
     try {
-      const blob = await requestNarration(card.spokenScript)
+      const blob = await requestNarration(script)
       if (audioUrl.current) URL.revokeObjectURL(audioUrl.current)
       const url = URL.createObjectURL(blob)
       audioUrl.current = url
@@ -409,6 +438,8 @@ export default function App() {
   function changeMedium(next: Medium) {
     setMedium(next)
     setCard(null)
+    setPlanNote(null)
+    setPlanFromGemma(false)
   }
 
   function onPin(location: Location) {
@@ -497,6 +528,8 @@ export default function App() {
                 })
                 setCard(saved)
                 setWeather(saved.weatherLine)
+                setPlanFromGemma(saved.source === 'gemma')
+                setPlanNote(saved.source === 'gemma' ? 'Gemma wrote this plan.' : null)
               }}
             >
               Saved study
@@ -548,7 +581,13 @@ export default function App() {
         </div>
       ) : null}
 
-      <MapView spots={mapSpots} camera={camera} onPin={onPin} onGround={(location) => void choose(location)} />
+      <MapView
+        spots={mapSpots}
+        camera={camera}
+        here={here}
+        onPin={onPin}
+        onGround={(location) => void choose(location)}
+      />
 
       {showStudy ? (
         <FieldSheet
@@ -557,11 +596,16 @@ export default function App() {
           card={card}
           weatherLine={weather}
           notice={notice}
+          planNote={planNote}
+          planFromGemma={planFromGemma}
+          here={here}
           busy={busy === 'card' || busy === 'voice' ? busy : null}
           onClose={() => {
             setSelected(null)
             setCard(null)
             setNotice(null)
+            setPlanNote(null)
+            setPlanFromGemma(false)
           }}
           kind={
             studies.find((study) => samePlace(study, selected))?.kind ??
@@ -574,6 +618,7 @@ export default function App() {
           }
           onWrite={() => void writeStudy()}
           onListen={() => void listen()}
+          onFindHere={findHere}
         />
       ) : showExplorer ? (
         <Explorer
