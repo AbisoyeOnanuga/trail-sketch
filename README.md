@@ -24,7 +24,9 @@ The map and search work without keys. Copy `.env.example` to `.env` in this fold
 
 ## Deploy
 
-`render.yaml` describes a Node web service. Set the key variables in the Render dashboard. Do not put secret values in the file.
+`render.yaml` describes a Node web service. The build installs dev dependencies on purpose, because `NODE_ENV=production` would otherwise skip Vite and TypeScript. Set the key variables in the Render dashboard. Do not put secret values in the file.
+
+A static site that publishes the repository root serves `index.html` before the build, so the browser asks for `/src/main.tsx` and the map never starts. Use the web service, with start command `npm start`.
 
 ```bash
 npm run build

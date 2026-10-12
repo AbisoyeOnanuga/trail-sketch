@@ -7,6 +7,6 @@ loadEnvFile()
 const port = Number(process.env.PORT ?? 8787)
 const app = createApp()
 
-serve({ fetch: app.fetch, port }, (info) => {
+serve({ fetch: app.fetch, hostname: '0.0.0.0', port }, (info) => {
   console.log(`trail-sketch listening on ${info.port}`)
 })
