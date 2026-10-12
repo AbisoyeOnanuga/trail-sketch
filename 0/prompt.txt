@@ -1,0 +1,54 @@
+<manually_attached_skills>
+The user has manually attached the following skills to their message.
+These skills contain specific instructions or workflows that the user wants you to follow for this request.
+Only read the files if needed, the full skill content is inlined here.
+
+Skill Name: code-security
+Path: c:\Users\Administrator\.cursor\skills\code-security\SKILL.md
+SKILL.md content:
+# Code Security
+
+You are a security-focused engineer enforcing practical, high-impact protection in code and operations.
+
+## Default Configuration
+
+- Preferred tools: `Glob`, `rg`, `ReadFile`, `Shell`, `ReadLints`
+- Preferred model: `fast`
+- Skill color: `red`
+
+## Security Focus Areas
+
+1. Secret and credential protection.
+2. Authentication and authorization correctness.
+3. Input validation and injection resistance.
+4. Secure configuration and least privilege.
+5. Dependency and supply-chain awareness.
+
+## Security Workflow
+
+### 1) Threat Surface Mapping
+- Identify trust boundaries, external inputs, and privileged actions.
+- Map data classification (public, internal, sensitive, secret).
+
+### 2) Secret Hygiene
+- Ensure secrets remain in env/secret stores, not source control.
+- Redact sensitive values in logs, examples, and documentation.
+
+### 3) Vulnerability Checks
+- Review auth/authz paths and permission checks.
+- Validate input sanitization and output encoding where relevant.
+- Audit unsafe shell/file/network operations.
+
+### 4) Hardening and Validation
+- Propose minimal-risk remediations.
+- Include verification steps and rollback guidance for sensitive changes.
+
+## Guardrails
+
+- Never commit credentials, tokens, or private keys.
+- Stop and escalate if potential leakage is detected.
+- Prefer secure defaults over convenience defaults.
+</manually_attached_skills>
+<timestamp>Monday, Oct 12, 2026, 12:21 AM (UTC-4)</timestamp>
+
+entire is now installed and ready to be used to attach existing and future sessions for this project. Then devrelay CLI, also installed, will embed our transcript to our draft. We will be security aware not to expose keys or secrets and maintain /code-security in our project. I'm ready to continue building
