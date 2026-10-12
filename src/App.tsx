@@ -122,7 +122,6 @@ export default function App() {
   const [area, setArea] = useState<{ latitude: number; longitude: number } | null>(null)
   const [studies, setStudies] = useState<Study[]>([])
   const [areaBusy, setAreaBusy] = useState(false)
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
@@ -134,29 +133,28 @@ export default function App() {
     }
   }, [])
 
+  const areaRequest = useRef(0)
+
   useEffect(() => {
-    if (!area || interests.length === 0) return
+    if (!area) return
+    const request = areaRequest.current + 1
+    areaRequest.current = request
     const meters = distanceChoices.find((choice) => choice.id === distance)?.meters ?? 4000
-    let cancelled = false
-    setAreaBusy(true)
-    setNotice(null)
     loadNearby(area.latitude, area.longitude, meters)
       .then((next) => {
-        if (!cancelled) setStudies(next)
+        if (areaRequest.current !== request) return
+        setStudies(next)
       })
       .catch((error: unknown) => {
-        if (cancelled) return
+        if (areaRequest.current !== request) return
         const code = error instanceof Error ? error.message : 'request_failed'
         setStudies([])
         setNotice(errorCopy[code] ?? errorCopy.request_failed)
       })
       .finally(() => {
-        if (!cancelled) setAreaBusy(false)
+        if (areaRequest.current === request) setAreaBusy(false)
       })
-    return () => {
-      cancelled = true
-    }
-  }, [area, distance, interests.length])
+  }, [area, distance])
 
   const pool = useMemo(() => {
     if (studies.length > 0) return studies
@@ -168,11 +166,12 @@ export default function App() {
     () => rankStudies(pool, { feel, description: prompt, interests }),
     [pool, feel, prompt, interests],
   )
-
-  useEffect(() => {
-    const best = ranked[0]
-    if (best) setActiveId(best.id)
-  }, [ranked])
+  const rankingKey = `${feel ?? ''}|${prompt}|${ranked.map((study) => study.id).join(',')}`
+  const [pick, setPick] = useState<{ key: string; id: string | null }>({ key: '', id: null })
+  if (pick.key !== rankingKey) {
+    setPick({ key: rankingKey, id: ranked[0]?.id ?? null })
+  }
+  const activeId = pick.id
 
   const focused = ranked.find((study) => study.id === activeId) ?? ranked[0] ?? null
   const camera = useMemo<Location | null>(() => {
@@ -210,26 +209,35 @@ export default function App() {
     }
   }, [])
 
+  const acceptFix = useCallback((latitude: number, longitude: number) => {
+    setAreaBusy(true)
+    setStudies([])
+    setNotice(null)
+    setSelected(null)
+    setCard(null)
+    setArea({ latitude, longitude })
+  }, [])
+
   const locate = useCallback(() => {
     if (!navigator.geolocation) {
       setNotice('This browser cannot share a location.')
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setSelected(null)
-        setCard(null)
-        setArea({ latitude: position.coords.latitude, longitude: position.coords.longitude })
-      },
+      (position) => acceptFix(position.coords.latitude, position.coords.longitude),
       () => setNotice('Location stayed off. Search a place or pick a trip.'),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
     )
-  }, [])
+  }, [acceptFix])
 
   useEffect(() => {
-    if (interests.length === 0 || area) return
-    locate()
-  }, [interests.length, area, locate])
+    if (interests.length === 0 || area || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (position) => acceptFix(position.coords.latitude, position.coords.longitude),
+      () => setNotice('Location stayed off. Search a place or pick a trip.'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+    )
+  }, [interests.length, area, acceptFix])
 
   function saveInterests(next: InterestId[]) {
     localStorage.setItem(INTERESTS_KEY, JSON.stringify(next))
@@ -257,9 +265,16 @@ export default function App() {
   function focusSearch(place: Location) {
     setResults([])
     setQuery('')
-    setSelected(null)
-    setCard(null)
-    setArea({ latitude: place.latitude, longitude: place.longitude })
+    acceptFix(place.latitude, place.longitude)
+  }
+
+  function changeDistance(next: DistanceId) {
+    if (area) {
+      setAreaBusy(true)
+      setStudies([])
+      setNotice(null)
+    }
+    setDistance(next)
   }
 
   async function writeStudy() {
@@ -310,7 +325,7 @@ export default function App() {
     const match = ranked.find((study) => samePlace(study, location))
     if (match) {
       setTouched(true)
-      setActiveId(match.id)
+      setPick({ key: rankingKey, id: match.id })
       return
     }
     void choose(location)
@@ -417,7 +432,7 @@ export default function App() {
           onSaveInterests={saveInterests}
           onEditInterests={() => setEditing(true)}
           distance={distance}
-          onDistance={setDistance}
+          onDistance={changeDistance}
           feel={feel}
           onFeel={setFeel}
           onPrompt={setPrompt}
@@ -430,7 +445,7 @@ export default function App() {
           notice={notice}
           onFocus={(study) => {
             setTouched(true)
-            setActiveId(study.id)
+            setPick({ key: rankingKey, id: study.id })
           }}
           onOpen={(study) =>
             void choose({ name: study.name, longitude: study.longitude, latitude: study.latitude })

@@ -53,22 +53,27 @@ function point(element: OverpassElement): { latitude: number; longitude: number 
 
 async function overpass(query: string): Promise<OverpassElement[]> {
   for (const endpoint of ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-          'User-Agent': USER_AGENT,
-        },
-        body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(12_000),
-      })
-      if (!response.ok) continue
-      const payload = (await response.json()) as { elements?: OverpassElement[] }
-      return Array.isArray(payload.elements) ? payload.elements : []
-    } catch {
-      continue
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+            'User-Agent': USER_AGENT,
+          },
+          body: new URLSearchParams({ data: query }),
+          signal: AbortSignal.timeout(18_000),
+        })
+        if (response.ok) {
+          const payload = (await response.json()) as { elements?: OverpassElement[] }
+          return Array.isArray(payload.elements) ? payload.elements : []
+        }
+        if (response.status < 500 && response.status !== 429) break
+      } catch {
+        // The public place service sometimes drops a request. One retry is enough.
+      }
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }
   throw new Error('nearby_failed')
@@ -79,21 +84,16 @@ export async function nearbyStudies(latitude: number, longitude: number, radius:
   const hit = cache.get(key)
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit.studies
 
-  const lat = latitude.toFixed(6)
-  const lon = longitude.toFixed(6)
-  const around = `(around:${radius},${lat},${lon})`
-  const query = `[out:json][timeout:12];(
-node["tourism"="viewpoint"]${around};
-node["natural"="peak"]${around};
-way["leisure"="park"]["name"]${around};
-way["leisure"="garden"]["name"]${around};
-way["natural"="wood"]["name"]${around};
-way["natural"="water"]["name"]${around};
-way["waterway"="river"]["name"]${around};
-way["man_made"="bridge"]["name"]${around};
-node["historic"]["name"]${around};
-way["historic"]["name"]${around};
-);out center 30;`
+  const km = radius / 1000
+  const dLat = km / 111
+  const dLon = km / (111 * Math.max(0.2, Math.cos((latitude * Math.PI) / 180)))
+  const box = `(${(latitude - dLat).toFixed(5)},${(longitude - dLon).toFixed(5)},${(latitude + dLat).toFixed(5)},${(longitude + dLon).toFixed(5)})`
+  const query = `[out:json][timeout:15];(
+way["leisure"="park"]["name"]${box};
+way["natural"="water"]["name"]${box};
+node["tourism"="viewpoint"]${box};
+way["man_made"="bridge"]["name"]${box};
+);out center 24;`
 
   const elements = await overpass(query)
   const studies: Study[] = []
@@ -119,10 +119,10 @@ way["historic"]["name"]${around};
       line: portrait.line,
     }
     const parsed = studySchema.safeParse(study)
-    if (parsed.success) studies.push(parsed.data)
-    if (studies.length >= 12) break
+    if (parsed.success && parsed.data.distanceMeters <= radius) studies.push(parsed.data)
   }
   studies.sort((a, b) => a.distanceMeters - b.distanceMeters)
+  studies.splice(12)
   if (cache.size > 40) {
     const oldest = cache.keys().next().value
     if (oldest) cache.delete(oldest)

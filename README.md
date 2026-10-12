@@ -14,7 +14,7 @@ The map and search work without keys. Copy `.env.example` to `.env` in this fold
 | Name | Purpose |
 | --- | --- |
 | `GEMMA_API_KEY` | Google AI Studio key. The same key calls Gemma. `GEMINI_API_KEY` is read only if this name is empty. |
-| `GEMMA_MODEL` | Defaults to `gemma-3-12b-it` |
+| `GEMMA_MODEL` | Defaults to `gemma-4-26b-a4b-it` |
 | `GEMMA_BASE_URL` | Optional. Use `http://127.0.0.1:11434/v1` for a local Ollama Gemma |
 | `ELEVENLABS_API_KEY` | Narration |
 | `ELEVENLABS_VOICE_ID` | Optional voice id |
