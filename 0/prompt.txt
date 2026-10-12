@@ -1,0 +1,501 @@
+<external_links>
+### Potentially Relevant Websearch Results
+
+You should respond as if these information are known to you. Refrain from saying "I am unable to browse the internet" or "I don't have access to the internet" or "I'm unable to provide real-time news updates". This is your internet search results. Please always cite any links you referenced from the above search results in your response in markdown format.
+
+-------
+Website URL: https://devrelay.com/
+Website Title: DEV & MLH inside your coding agent | DevRelay
+Website Content:
+DevRelay 
+
+What it does Demo Hacktoberfest Partners Install 
+
+Major League Hacking × DEV 
+
+#  DEV and MLH,  
+ inside your coding agent
+
+ DevRelay is an MCP server and skill pack for your coding agent. Enter hackathons, publish your work, find community wisdom, and claim free sponsor credits without leaving your session.
+
+macOS & Linux Windows 
+
+`` 
+
+Installs the gateway, connects the agents it finds, and adds the skills.
+
+**Beta** · New skills ship often and update automatically.
+
+Works with
+
+Antigravity 
+
+Claude Code 
+
+OpenAI Codex 
+
+Cursor 
+
+OpenCode 
+
+& more 
+
+01What it does
+
+## What your agent can do with DevRelay
+
+Ask for it, or let your agent bring it up when it fits the work. It checks with you before it registers, claims, or publishes anything.
+
+### How it works
+
+DevRelay is a local MCP server plus a set of skills. The server talks to DEV and MLH for your agent, and the skills tell your agent when to use it. One install sets up every supported agent on your machine, and both keep themselves up to date.
+
+\>\_ your agent 
+
+DevRelay 
+
+* DEVposts, search, challenges
+* MLHevents, offers, submissions
+
+* **Enter hackathons** Register for MLH events, submit your project, and enter prize challenges.
+* **Use sponsor perks** Claim credits and install sponsors' Agent Skills at MLH events you've joined.
+* **Publish to DEV** Turn what you just shipped into a DEV draft or a DEV Challenge entry.
+* **Get real answers** Search DEV for posts and postmortems from developers who hit the same problem.
+* **Never miss an event** Current dates and rules for Hacktoberfest, DEV Challenges, and Global Hack Week.
+* **Share the session** Save an agent transcript to DEV and embed it in a post.
+
+### Submit your hackathon project from your repo
+
+Your agent writes up the project from your code, submits it to your MLH event, and enters it in the prize challenges that fit.
+
+Agent Session • Hackathon Submission 
+
+You
+
+We're done. Submit this to Summit Hacks and enter it in any sponsor challenges it fits.
+
+⚡ `devrelay.submit_project_to_event({ project_id: "…", event_id: "…" })` 
+
+⚡ `devrelay.enter_challenge({ challenge_id: "…" })` 
+
+Your agent via DevRelay 
+
+ Submitted **Pantry Pal** to Summit Hacks 2026 and entered it in **Best Use of MongoDB Atlas** and **Best Use of Gemini API**. Want a DEV post about the build too?
+
+🏆 MLH submission 
+
+Submitted 
+
+✓ Project written up from the repo Pantry Pal 
+
+✓ Submitted to event Summit Hacks 2026 
+
+✓ Best Use of MongoDB Atlas entered 
+
+✓ Best Use of Gemini API entered 
+
+Submitted events.mlh.com/events/summit-hacks-2026 
+
+View on MLH ↗ 
+
+### Claim credits for the stack you're about to spin up
+
+Building at an MLH event? When you reach for hosting, a database, or an AI API, your agent checks what the event's sponsors are offering and asks before it claims anything.
+
+Agent Session • New Project Setup 
+
+You
+
+Give this study-buddy chatbot memory so it remembers each user between sessions. It's for this weekend's hackathon, so keep it cheap.
+
+⚡ `devrelay.list_event_offers({ event_id: "…" })` 
+
+Your agent via DevRelay 
+
+ Backboard is offering **$50 in API credits** at your hackathon, and its assistants keep persistent memory out of the box. Want me to claim it? Then I'll put `BACKBOARD_API_KEY` in `.env` and wire up the first assistant.
+
+🎟️ Sponsor offer 
+
+Eligible 
+
+Backboard AI memory & LLM API 
+
+$50 in API credits
+
+Summit Hacks 2026 sponsor • New accounts only 
+
+Promo `BACKBOARDHACK50` claimed 
+
+✓ Claimed with your OK 1 per person 
+
+✓ Redeem at backboard.io/redeem 
+
+Next: create the assistant and deploy 
+
+### Publish what you just built
+
+When a feature ships or a tricky bug finally makes sense, your agent offers to write it up as a DEV draft, with code and tags from the diff.
+
+Agent Session • Post Drafting 
+
+You
+
+We just moved our caching layer to Redis Streams. Draft a DEV post about it with before/after snippets.
+
+⚡ `devrelay.create_article({ title: "Resilient Caching…", published: false })` 
+
+Your agent via DevRelay 
+
+ Saved a DEV draft with before/after code, tagged `#redis` `#typescript` `#performance`. It's marked as AI-assisted and stays private until you publish.
+
+✍️ DEV draft 
+
+Saved to drafts 
+
+#### Building Resilient Caching with Redis Streams in Node.js
+
+5 min read 
+
+#redis #typescript #performance #webdev 
+
+```
+async function consumeStream(streamKey: string) {
+  // Wait up to 5s for new entries
+  const entries = await redis.xread('BLOCK', 5000, 'STREAMS', streamKey, '$');
+  return processBatch(entries);
+}
+```
+
+Draft #89210 Preview on DEV ↗ 
+
+### Know what's on across MLH and DEV this month
+
+Hacktoberfest, Global Hack Week, DEV Challenges: your agent checks current dates and rules instead of guessing from its training data.
+
+Agent Session • Community Radar 
+
+You
+
+Anything going on in the community this month I should be building for?
+
+⚡ `devrelay.get_challenges()` 
+
+⚡ `devrelay.get_events()` 
+
+Your agent via DevRelay 
+
+**Hacktoberfest** starts Oct 1, and this year it's about open-source AI. Weekly DEV challenges and **Global Hack Week** each earn stickers, and three gets you a real pack. The launch weekend challenge fits this project. Want the rules?
+
+📡 Upcoming events 
+
+This month 
+
+Hacktoberfest 2026 Starts Oct 1 
+
+MLH × DEV • Collect 3 stickers, get a real pack 
+
+DEV Launch Weekend Challenge New each week 
+
+DEV • 1 sticker • Build with open-weight models 
+
+Global Hack Week: Hacktoberfest In October 
+
+MLH • Online • Livestreams, daily challenges, stickers 
+
+From DEV Challenges and MLH events 
+
+### Debug with answers from people who hit the same wall
+
+Before it guesses at a fast-moving framework, your agent searches DEV write-ups and postmortems, applies what worked, and cites its sources.
+
+Agent Session • Community Debugging 
+
+You
+
+SQLx keeps running out of pool connections under load. Has anyone on DEV solved this?
+
+⚡ `devrelay.search_dev_to_semantic({ query: "sqlx pool timeout" })` 
+
+Your agent via DevRelay 
+
+ Three DEV postmortems point to the same fix: cap the pool at about twice your core count and set an acquire timeout. Applying it now.
+
+🌐 Community answers 
+
+3 sources 
+
+DEV post dev.to/alex\_dev/rust-sqlx-bottlenecks 
+
+"Setting max\_connections higher than (CPU cores \* 2) causes severe context-switching latency. Clamp connection lifetime and set explicit acquire timeouts."
+
+```
+  let pool = PgPoolOptions::new()
+-     .max_connections(100)
++     .max_connections(num_cpus::get() * 2)
++     .acquire_timeout(Duration::from_secs(3))
+      .connect(&url).await?;
+```
+
+✓ Fix applied locally Read the post ↗ 
+
+02Under the hood
+
+## The calls behind the answers
+
+Sample requests your agent sends to DevRelay over MCP, and what comes back.
+
+#### Pick a tool
+
+get\_challenges Open DEV Challenges get\_mlh\_event An MLH event and its prize challenges search\_dev\_to\_semantic Search DEV posts by meaning list\_event\_offers Sponsor offers at your MLH event 
+
+Plain JSON-RPC over stdio. Any MCP-capable agent can call these.
+
+devrelay-gateway 
+
+03Install
+
+## Get started in a minute
+
+One command sets up every supported agent on your machine.
+
+1. 1  
+#### Run the installer  
+Installs the gateway and skills, registers DevRelay with each agent it finds, and checks for updates daily.  
+```  
+curl -fsSL https://devrelay.com/install.sh | sh  
+```
+2. 2  
+#### Restart your agent  
+Restart Antigravity, Claude Code, Codex, Cursor, OpenCode, or whichever agent you use so it loads DevRelay.
+3. 3  
+#### Sign in with MLH  
+The first time your agent uses DevRelay, it opens your browser to sign in. To publish on DEV, link your DEV account in your MLH profile.
+4. 4  
+#### Ask it something  
+```  
+What hackathons can I enter this month?  
+```
+
+mcp.json 
+
+```
+{
+  "mcpServers": {
+    "devrelay-gateway": {
+      "command": "~/.devrelay/bin/dev_mlh_mcp_server",
+      "args": ["--stdio"]
+    }
+  }
+}
+```
+
+The installer writes this entry for you. For any other MCP client, add it by hand with the full path to the binary.
+
+DevRelay 
+
+DEV and MLH, inside your coding agent.
+
+Powered by Major League Hacking DEV 
+
+##### Toolkit
+
+What it does Demo Install 
+
+##### Community
+
+ Hacktoberfest Offers Global Hack Week Knowledge base Partners 
+
+© 2026 DevRelay Toolkit
+
+Beta v0.1.20 
+____
+
+</external_links>
+<manually_attached_skills>
+The user has manually attached the following skills to their message.
+These skills contain specific instructions or workflows that the user wants you to follow for this request.
+Only read the files if needed, the full skill content is inlined here.
+
+Skill Name: frontend-design
+Path: c:\Users\Administrator\.cursor\skills\frontend-design\SKILL.md
+SKILL.md content:
+# Frontend Design
+
+Build real, production-grade frontend code with a clear, intentional aesthetic point of view. Avoid generic "AI-looking" UI patterns and commit to a distinctive visual direction.
+
+## When To Use
+
+Use this skill when the user asks for:
+- A web component, page, section, or full interface
+- A frontend application shell or UI system
+- Visual redesigns, polish passes, or "make it look premium" work
+- Creative UI with strong art direction
+
+## Core Promise
+
+For each request:
+1. Pick a bold conceptual direction.
+2. Translate it into working code (HTML/CSS/JS, React, Vue, etc.).
+3. Deliver cohesive, functional UI with meticulous visual detail.
+
+Do not output mockup-only code or static pseudo-designs. Ship implementable UI.
+
+## Design Thinking Workflow
+
+Before coding, make a fast design brief:
+
+1. **Purpose**
+   - What task does this interface solve?
+   - Who is using it and in what context?
+
+2. **Tone**
+   - Choose one strong aesthetic direction and commit.
+   - Examples: brutally minimal, maximalist chaos, retro-futuristic, organic, luxury, playful, editorial, brutalist, art deco, soft pastel, industrial.
+   - Bold and restrained approaches are both valid; intentionality is mandatory.
+
+3. **Constraints**
+   - Respect framework, runtime, performance, responsiveness, and accessibility constraints.
+
+4. **Differentiation**
+   - Define one memorable signature element: the thing users remember in 5 seconds.
+
+Then implement from that brief without drifting into generic defaults.
+
+## Aesthetic Execution Rules
+
+### 1) Typography
+- Prefer characterful, context-appropriate typography.
+- Avoid generic defaults such as Arial, Inter, Roboto, and system fallbacks as primary visual voice.
+- Pair a distinctive display face with a readable body face.
+- Use weight, scale, line-height, and tracking as design tools, not defaults.
+
+### 2) Color and Theme
+- Commit to a cohesive palette with clear hierarchy.
+- Use CSS variables/tokens for repeatability.
+- Favor strong dominant tones with intentional accents over timid, evenly distributed palettes.
+
+### 3) Motion
+- Animate with purpose: entry choreography, hover states, scroll reveals, state transitions.
+- Prefer high-impact, orchestrated moments over noisy micro-animations.
+- For React, use Motion when available; otherwise rely on robust CSS transitions/keyframes.
+- Keep motion performant (`transform`, `opacity`) and respect reduced-motion preferences.
+
+### 4) Spatial Composition
+- Use deliberate composition choices: asymmetry, overlap, broken-grid placements, diagonal flows, controlled density, or large negative space.
+- Layout must feel authored, not templated.
+
+### 5) Background and Surface Detail
+- Build atmosphere: gradients, mesh fields, noise/grain, transparency layering, decorative edges, shadow systems, pattern logic.
+- Effects must match the concept rather than being decorative filler.
+
+## Anti-Patterns (Never Ship)
+
+- Cookie-cutter component arrangements with no point of view
+- Overused "AI gradient hero on white" aesthetics
+- Recycled font/palette pairings from common template culture
+- Visual systems that ignore product context or user intent
+- Elaborate visuals without functional clarity
+
+## Complexity Matching
+
+Match implementation depth to aesthetic ambition:
+
+- **Maximalist / expressive direction**
+  - Rich layering, deeper animation timelines, custom visuals, denser style logic
+- **Minimal / refined direction**
+  - Fewer elements, stronger rhythm, exact spacing, subtle but precise interactions
+
+Do not underbuild expressive concepts or overbuild minimal concepts.
+
+## Implementation Standards
+
+- Deliver complete, runnable code for requested stack.
+- Keep code maintainable: semantic structure, reusable classes/components, clear naming.
+- Ensure responsive behavior across core breakpoints.
+- Ensure keyboard/focus visibility and accessible semantics.
+- Use design tokens (variables) for color, spacing, typography, radius, shadow, timing.
+- Include states (default/hover/focus/active/disabled/loading where relevant).
+
+## Response Structure
+
+When producing an implementation, use this order:
+
+1. **Design direction** (2-5 bullets)
+   - Chosen tone, audience fit, signature motif, palette logic, type pairing intent
+2. **Implementation**
+   - Provide full working code in the requested stack
+3. **Polish notes**
+   - Mention interaction details, responsive decisions, and accessibility considerations
+
+## Quick Pre-Flight Checklist
+
+Before finalizing, verify:
+
+- [ ] A clear and singular aesthetic direction is visible
+- [ ] At least one memorable signature choice is present
+- [ ] Typography is intentional and non-generic
+- [ ] Palette and spacing are cohesive and tokenized
+- [ ] Motion is purposeful and performant
+- [ ] UI is functional, responsive, and accessible
+- [ ] Result does not resemble a default template
+
+## Optional Reference Expansion
+
+If a task needs extra depth, create support files and link them here:
+- `examples.md` for style exemplars
+- `design-principles.md` for deeper heuristics
+- `patterns.md` for reusable composition patterns
+
+Keep this `SKILL.md` concise and actionable.
+
+---
+
+Skill Name: fullstack-engineer
+Path: c:\Users\Administrator\.cursor\skills\fullstack-engineer\SKILL.md
+SKILL.md content:
+# Fullstack Engineer
+
+Own feature delivery from user interaction to data persistence and production behavior.
+
+## Cross-Layer Workflow
+
+1. Define end-to-end contract and data shape.
+2. Implement backend/domain logic and validation.
+3. Implement frontend state and user flows.
+4. Add observability and failure handling.
+5. Verify deployment readiness and rollback path.
+
+## Quality Bar
+
+- Consistent schemas and API contracts
+- Clear loading/error UX states
+- Safe migrations and data integrity
+- Reproducible verification steps
+
+---
+
+Skill Name: typescript-javascript-engineer
+Path: c:\Users\Administrator\.cursor\skills\typescript-javascript-engineer\SKILL.md
+SKILL.md content:
+# TypeScript JavaScript Engineer
+
+Build reliable TS/JS systems with explicit contracts and robust runtime behavior.
+
+## Standards
+
+- Prefer TypeScript for safety when available.
+- Keep module boundaries and API contracts clear.
+- Avoid implicit any and fragile dynamic behavior in critical paths.
+- Enforce consistent error handling and logging conventions.
+
+## Quality Gates
+
+- Typecheck, lint, and test changed areas.
+- Protect async flows against race and state bugs.
+- Validate input boundaries and serialization paths.
+</manually_attached_skills>
+<timestamp>Sunday, Oct 11, 2026, 11:43 PM (UTC-4)</timestamp>
+
+I am starting and designing a great /frontend-design for a plein air drawing and painting location-explorer mobile-oriented web-app with a great map UI/UX and /fullstack-engineer /typescript-javascript-engineer using tools, at least one of: ///"Use Render as your project's AI runtime, to host an agent's front end, or to run Hermes or OpenClaw.", "Use TabPFN, Prior Labs' tabular foundation model, to forecast, predict, classify, or spot anomalies from historical data like a CSV. Use it inside an agent tool (with or without the MCP server) or on its own.", "Use Thinking Machines' Tinker to fine-tune a model for a specific task, and show a clear improvement in performance, latency, or cost over a baseline.", "Build or deploy your project on DigitalOcean: host your app or agent, run an open-weight model on a GPU Droplet (1-Click Models make this quick), or build an agent on the Gradient AI Platform.", "Use Gemma, Google's open-weight model, in building your project: run it locally, fine-tune it, or serve it through Google Cloud or another provider." /// and at least one of: "Backboard.io: Build with R-CLI, Backboard's open-source terminal coding agent, compare open-weight models through a single Backboard API key, or give an open-source project's assistant memory and RAG.", "ElevenLabs: Give an open-source agent a voice, transcribe audio for a local model, or generate narration for your demo.", "entire.io: Share the agent sessions behind your project in the write-up, or search past agent work to explain why code exists.", "mastra.ai: Orchestrate an agent over open models, add memory and tools to a chat agent, or build a workflow that triages GitHub issues.", "mongodb: Use Atlas as your data layer: Atlas Vector Search for retrieval, long-term memory for an agent, or the database behind an app built on an open-weight model.", "sentry: Show your agent's work: how it's set up, how it performs (latency, tokens, cost), what you found, and how you debugged it. Include traces or screenshots in your write-up.", "serpapi.com/search-api: Give an agent live web search, ground a RAG app in fresh results, or track news for an open-source project.", "temporal.io/ai-cookbook: Make your agent durable. Wrap it in a Temporal workflow so it survives failures, retries flaky tool calls, and picks up where it left off.", "tigerdata.com/docs: Store embeddings with pgvector, run hybrid keyword and vector search for an agent, or let an agent manage a database through Tiger MCP." ///
+we can use at least one or multiple combination of tools in each group. Our project is a highlight of the utility of open-source/innovation matters for the project.
+/// from each group, some tools overlap in functionality so we can realistically only use one, likewise the project will call for tools based on how we build its UX. we won't be missing out if we don't use x tool as future opportunities will arise for a different set of tools to use. A solid balance is the standard. /// and before we begin, I would like to use https://devrelay.com/  to save my agent session and embed it or link it to a post about my project. perhaps one of the tools is useful to save my agent session to dev or dev is built to do that on its own. I have devrelay installed and working with powershell CLI and will also use it to make a draft entry on DEV and save my agent transcript
