@@ -111,6 +111,10 @@ export function MapView({ spots, camera, here, onPin, onGround }: MapViewProps) 
     dot.title = 'You are here'
     dot.setAttribute('role', 'img')
     dot.setAttribute('aria-label', 'You are here')
+    const label = document.createElement('span')
+    label.className = 'here-label'
+    label.textContent = 'You are here'
+    dot.append(label)
     hereMarkerRef.current?.remove()
     hereMarkerRef.current = new Marker({ element: dot }).setLngLat([hereLongitude, hereLatitude]).addTo(map)
   }, [hereLongitude, hereLatitude])

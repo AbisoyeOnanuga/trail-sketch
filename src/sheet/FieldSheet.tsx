@@ -21,9 +21,13 @@ type FieldSheetProps = {
   kind: StudyKind | null
 }
 
-function walkingDirections(from: { longitude: number; latitude: number }, to: Location): string {
-  const route = `${from.latitude},${from.longitude};${to.latitude},${to.longitude}`
-  return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${encodeURIComponent(route)}`
+function walkingDirections(from: { longitude: number; latitude: number } | null, to: Location): string {
+  const url = new URL('https://www.google.com/maps/dir/')
+  url.searchParams.set('api', '1')
+  if (from) url.searchParams.set('origin', `${from.latitude},${from.longitude}`)
+  url.searchParams.set('destination', `${to.latitude},${to.longitude}`)
+  url.searchParams.set('travelmode', 'walking')
+  return url.toString()
 }
 
 export function FieldSheet({
@@ -68,21 +72,17 @@ export function FieldSheet({
           <p className="weather">{study?.weatherLine || weatherLine || 'Reading the light…'}</p>
         </div>
       </div>
-      {here && fromHere !== null ? (
-        <p className="directions">
-          {fromHere < 40 ? 'You are at this place.' : `${formatDistance(fromHere)} from you.`}
-          <a href={walkingDirections(here, location)} target="_blank" rel="noopener noreferrer">
-            Walking directions
-          </a>
-        </p>
-      ) : (
-        <p className="directions">
+      <p className="directions">
+        {fromHere === null ? null : fromHere < 40 ? 'You are at this place.' : `${formatDistance(fromHere)} from you.`}
+        <a href={walkingDirections(here, location)} target="_blank" rel="noopener noreferrer">
+          Walking directions
+        </a>
+        {here ? null : (
           <button type="button" className="text-button" onClick={onFindHere}>
             Show where I am
           </button>
-          Walking directions start from that blue dot.
-        </p>
-      )}
+        )}
+      </p>
       {planNote ? (
         <p className={planFromGemma ? 'plan-note is-live' : 'plan-note'} role="status">
           {planNote}

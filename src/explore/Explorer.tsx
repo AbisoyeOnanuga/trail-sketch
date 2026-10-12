@@ -192,6 +192,14 @@ export function Explorer({
 
   return (
     <section className="explorer" aria-label="Places to study">
+      <div className="explorer-nav">
+        <button type="button" className="back-button" aria-label="Back" onClick={onEditInterests}>
+          <span aria-hidden="true">←</span>
+        </button>
+        <button type="button" className="use-map" onClick={onUseMap}>
+          Use the map
+        </button>
+      </div>
       <div className="explorer-row">
         <div className="chips" role="radiogroup" aria-label="How far">
           {distanceChoices.map((choice) => (
@@ -207,14 +215,6 @@ export function Explorer({
               {choice.label}
             </button>
           ))}
-        </div>
-        <div className="explorer-tools">
-          <button type="button" className="text-button" onClick={onUseMap}>
-            Use the map
-          </button>
-          <button type="button" className="text-button" onClick={onEditInterests}>
-            Interests
-          </button>
         </div>
       </div>
       <div className="chips feel-row" role="group" aria-label="Feel of the study">

@@ -245,13 +245,35 @@ button:disabled { cursor: progress; opacity: 0.7; }
 }
 
 .here-pin {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1.05rem;
+  height: 1.05rem;
   border-radius: 50%;
-  background: var(--cobalt);
-  border: 3px solid #fffaf3;
-  box-shadow: 0 0 0 7px color-mix(in srgb, var(--cobalt) 32%, transparent);
+  background: #4285f4;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 9px rgba(66, 133, 244, 0.35);
   pointer-events: none;
+}
+
+.here-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.4rem);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: #1a73e8;
+  color: #fff;
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+  animation: here-say 4.2s ease forwards;
+}
+
+@keyframes here-say {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .values, .swatches {
@@ -355,7 +377,37 @@ button:disabled { cursor: progress; opacity: 0.7; }
   font-size: 0.9rem;
 }
 
-.explorer-row, .feel-row, .prompt, .scroll-cue, .explorer-note { flex-shrink: 0; }
+.explorer-nav, .explorer-row, .feel-row, .prompt, .scroll-cue, .explorer-note { flex-shrink: 0; }
+
+.explorer-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.back-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.use-map {
+  flex: 1;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.55rem 0.9rem;
+  font-weight: 650;
+}
 
 .explorer-row {
   display: flex;
@@ -363,8 +415,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
   gap: 0.4rem;
   align-items: center;
 }
-
-.explorer-tools { display: flex; gap: 0.2rem; }
 
 .chips {
   display: flex;
@@ -556,15 +606,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
     flex: 1 1 100%;
     min-width: 0;
   }
-  .explorer-tools {
-    flex: 1 1 100%;
-    gap: 0.35rem;
-  }
-  .explorer-tools .text-button {
-    flex: 1 1 0;
-    min-width: 0;
-    text-align: center;
-  }
   .app.has-explorer .explorer,
   .app.has-explorer .gate {
     top: 13.6rem;
@@ -707,7 +748,7 @@ button:disabled { cursor: progress; opacity: 0.7; }
 @media (prefers-reduced-motion: reduce) {
   .sheet { animation: none; }
   .pin.is-active { transform: none; }
-  .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art { animation: none; }
+  .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art, .here-label { animation: none; }
 }
 
 @keyframes rise {

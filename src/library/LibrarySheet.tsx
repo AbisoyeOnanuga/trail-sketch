@@ -106,7 +106,7 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDe
         <p className="hint-inline">
           {clientId
             ? 'Sign in with Google to keep this library with your account on this phone.'
-            : 'Studies are saved on this phone. Add GOOGLE_CLIENT_ID on the server to sign in with Google.'}
+            : 'Studies are saved on this phone.'}
         </p>
       )}
       {profile ? (
@@ -120,9 +120,9 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDe
         >
           Sign out
         </button>
-      ) : (
+      ) : clientId ? (
         <div ref={buttonRef} className="google-button" />
-      )}
+      ) : null}
       {notice ? <p className="notice">{notice}</p> : null}
       {visits.length === 0 ? (
         <p className="subject">When you accept a place, the date, time, and what it is go here.</p>
