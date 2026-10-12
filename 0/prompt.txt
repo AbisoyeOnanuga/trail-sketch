@@ -1,0 +1,4 @@
+I've added my gemini key to env. the idea is for trail sketch to suggest locations or ideas for the study based on the artists intersts and those will appear when they load the app in their mobile browser and see what their area has to offer or if they want to travel or hike some distance. ///
+the app needs a great UX map and location explorer that is visually oriented for the locations that users will have a preview of before picking, they will tap on them, have an idea of what they want to study that day and tap on its nearest 'feel' word or write a description of what it is, /// the nearest or closest location to that prompt will be suggested with the visual preview of what they are like, and they can click through to get more details about what they will be drawing or painting.
+///
+I will go over to ElevenLabs to acquire my key, then inform me what you need for using render.
