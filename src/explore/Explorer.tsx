@@ -221,7 +221,7 @@ export function Explorer({
       </form>
       {notice ? <p className="explorer-note">{notice}</p> : null}
       {loading ? <p className="explorer-note">Looking around…</p> : null}
-      {!loading && studies.length === 0 ? (
+      {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">
           {hasArea
             ? 'Nothing named is this close. Try a hike, or search a place.'
