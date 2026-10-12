@@ -1,0 +1,310 @@
+<external_links>
+### Potentially Relevant Websearch Results
+
+You should respond as if these information are known to you. Refrain from saying "I am unable to browse the internet" or "I don't have access to the internet" or "I'm unable to provide real-time news updates". This is your internet search results. Please always cite any links you referenced from the above search results in your response in markdown format.
+
+-------
+Website URL: https://github.com/uiverse-io/galaxy
+Website Title: GitHub - uiverse-io/galaxy: The largest Open-Source UI Library! Community-made and free to use. Made with either CSS or Tailwind. · GitHub
+Website Content:
+Skip to content 
+
+## Navigation Menu
+
+Sign in
+
+Appearance settings
+
+* Platform  
+   * AI CODE CREATION  
+         * GitHub CopilotWrite better code with AI  
+         * GitHub Copilot appDirect agents from issue to merge  
+         * MCP RegistryIntegrate external tools  
+   * DEVELOPER WORKFLOWS  
+         * ActionsAutomate any workflow  
+         * CodespacesInstant dev environments  
+         * IssuesPlan and track work  
+         * Code ReviewManage code changes  
+         * Code QualityEnforce quality at merge  
+   * APPLICATION SECURITY  
+         * GitHub Advanced SecurityFind and fix vulnerabilities  
+         * Code securitySecure your code as you build  
+         * Secret protectionStop leaks before they start  
+   * EXPLORE  
+         * Why GitHub  
+         * Documentation  
+         * Blog  
+         * Changelog  
+         * Marketplace  
+View all features
+* Solutions  
+   * BY COMPANY SIZE  
+         * Enterprises  
+         * Small and medium teams  
+         * Startups  
+         * Nonprofits  
+   * BY USE CASE  
+         * App Modernization  
+         * DevSecOps  
+         * DevOps  
+         * CI/CD  
+         * View all use cases  
+   * BY INDUSTRY  
+         * Healthcare  
+         * Financial services  
+         * Manufacturing  
+         * Government  
+         * View all industries  
+View all solutions
+* Resources  
+   * EXPLORE BY TOPIC  
+         * AI  
+         * Software Development  
+         * DevOps  
+         * Security  
+         * View all topics  
+   * EXPLORE BY TYPE  
+         * Customer stories  
+         * Events & webinars  
+         * Ebooks & reports  
+         * Business insights  
+         * GitHub Skills  
+   * SUPPORT & SERVICES  
+         * Documentation  
+         * Customer support  
+         * Community forum  
+         * Trust center  
+         * Partners  
+View all resources
+* Open Source  
+   * COMMUNITY  
+         * GitHub SponsorsFund open source developers  
+   * PROGRAMS  
+         * Security Lab  
+         * Maintainer Community  
+         * GitHub Stars  
+         * Archive Program  
+   * REPOSITORIES  
+         * Topics  
+         * Trending  
+         * Collections
+* Enterprise  
+   * ENTERPRISE SOLUTIONS  
+         * Enterprise platformAI-powered developer platform  
+   * AVAILABLE ADD-ONS  
+         * GitHub Advanced SecurityEnterprise-grade security features  
+         * Copilot for BusinessEnterprise-grade AI features  
+         * Premium SupportEnterprise-grade 24/7 support
+* Pricing
+
+Search/
+
+Sign in
+
+Sign up
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert 
+
+{{ message }}
+
+1. uiverse-io
+2. galaxy
+
+## Repository navigation
+
+* Code
+* Issues11 (11)
+* Pull requests3 (3)
+* Actions
+* Projects
+* Security and quality
+* Insights
+
+More items
+
+uiverse-io
+
+**galaxy**
+
+Public
+
+* NotificationsYou must be signed in to change notification settings
+* Fork953 (953)
+* Star13.5k (13.5k)You must be signed in to star a repository
+
+## About
+
+The largest Open-Source UI Library! Community-made and free to use. Made with either CSS or Tailwind.
+
+Uiverse.io
+
+### Topics
+
+communitycsstailwindui
+
+### Resources
+
+Readme
+
+MIT license
+
+Activity
+
+Custom properties
+
+### Stars
+
+**13.5k** stars
+
+### Watchers
+
+**97** watching
+
+### Forks
+
+**953** forks
+
+Report repository
+
+main
+
+BranchesTags
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+## History
+
+3,977 Commits
+
+3,977 Commits
+
+## Folders and files
+
+| Name                                                                              | Name                                                                              | Last commit message | Last commit date |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------- | ---------------- |
+| [Buttons](/uiverse-io/galaxy/tree/main/Buttons "Buttons")                         | [Buttons](/uiverse-io/galaxy/tree/main/Buttons "Buttons")                         |                     |                  |
+| [Cards](/uiverse-io/galaxy/tree/main/Cards "Cards")                               | [Cards](/uiverse-io/galaxy/tree/main/Cards "Cards")                               |                     |                  |
+| [Checkboxes](/uiverse-io/galaxy/tree/main/Checkboxes "Checkboxes")                | [Checkboxes](/uiverse-io/galaxy/tree/main/Checkboxes "Checkboxes")                |                     |                  |
+| [Forms](/uiverse-io/galaxy/tree/main/Forms "Forms")                               | [Forms](/uiverse-io/galaxy/tree/main/Forms "Forms")                               |                     |                  |
+| [Inputs](/uiverse-io/galaxy/tree/main/Inputs "Inputs")                            | [Inputs](/uiverse-io/galaxy/tree/main/Inputs "Inputs")                            |                     |                  |
+| [Notifications](/uiverse-io/galaxy/tree/main/Notifications "Notifications")       | [Notifications](/uiverse-io/galaxy/tree/main/Notifications "Notifications")       |                     |                  |
+| [Patterns](/uiverse-io/galaxy/tree/main/Patterns "Patterns")                      | [Patterns](/uiverse-io/galaxy/tree/main/Patterns "Patterns")                      |                     |                  |
+| [Radio-buttons](/uiverse-io/galaxy/tree/main/Radio-buttons "Radio-buttons")       | [Radio-buttons](/uiverse-io/galaxy/tree/main/Radio-buttons "Radio-buttons")       |                     |                  |
+| [Toggle-switches](/uiverse-io/galaxy/tree/main/Toggle-switches "Toggle-switches") | [Toggle-switches](/uiverse-io/galaxy/tree/main/Toggle-switches "Toggle-switches") |                     |                  |
+| [Tooltips](/uiverse-io/galaxy/tree/main/Tooltips "Tooltips")                      | [Tooltips](/uiverse-io/galaxy/tree/main/Tooltips "Tooltips")                      |                     |                  |
+| [loaders](/uiverse-io/galaxy/tree/main/loaders "loaders")                         | [loaders](/uiverse-io/galaxy/tree/main/loaders "loaders")                         |                     |                  |
+| [LICENSE](/uiverse-io/galaxy/blob/main/LICENSE "LICENSE")                         | [LICENSE](/uiverse-io/galaxy/blob/main/LICENSE "LICENSE")                         |                     |                  |
+| [README.md](/uiverse-io/galaxy/blob/main/README.md "README.md")                   | [README.md](/uiverse-io/galaxy/blob/main/README.md "README.md")                   |                     |                  |
+| View all files                                                                    |                                                                                   |                     |                  |
+
+## Repository files navigation
+
+* README
+* MIT license
+
+More items
+
+screenshot
+
+# Galaxy
+
+Welcome to the `galaxy`, a collection of over 3000 unique UI elements from Uiverse.io.
+
+Every single UI element you find in here is sourced from our main platform, Uiverse.io. As designers and enthusiasts share their creations on our website, we automatically curate and upload them here for ease of access and implementation.
+
+## Browsing the Collection
+
+While this repository provides an archive of all the UI elements, the best way to browse is on Uiverse.io. There, you can search and interact with all the elements while having a visual overview.
+
+## Contribution
+
+Interested in growing this universe of UI components? Contribution is simple:
+
+1. **Create & Submit**: Craft your unique UI element and submit it to Uiverse.io.
+2. **Approval**: Once your submission is reviewed and approved on our platform, it will automatically be uploaded to this repo.
+
+**Please note**: Direct contributions or pull requests to this repository will be ignored. The `galaxy` is exclusively managed through the Uiverse.io platform to ensure consistency and quality.
+
+## Licensing and Attribution
+
+All UI elements in this repository are available under the **MIT License**, granting you the freedom to use, modify, and distribute them as you please. However, while not mandatory, we deeply value and appreciate attribution.
+
+When implementing a UI element from this collection, kindly consider giving credit to both the original creator and Uiverse.io. This simple act promotes the ethos of sharing, acknowledges the designer's effort, and celebrates the community spirit.
+
+## About
+
+The largest Open-Source UI Library! Community-made and free to use. Made with either CSS or Tailwind.
+
+Uiverse.io
+
+### Topics
+
+communitycsstailwindui
+
+### Resources
+
+Readme
+
+MIT license
+
+Activity
+
+Custom properties
+
+### Stars
+
+**13.5k** stars
+
+### Watchers
+
+**97** watching
+
+### Forks
+
+**953** forks
+
+Report repository
+
+## Releases
+
+## Packages
+
+## Contributors
+
+## Languages
+
+## Footer
+
+ © 2026 GitHub, Inc. 
+
+### Footer navigation
+
+* Terms
+* Privacy
+* Security
+* Status
+* Community
+* Docs
+* Contact
+* Manage cookies
+* Do not share my personal information
+
+ You can’t perform that action at this time.
+____
+
+</external_links>
+<uploaded_documents>
+The following documents have been saved to your filesystem. You can read them using your file-reading tool or other tools:
+- C:\Users\Administrator\.cursor\projects\d-Documents-vscode-abisoyeo/uploads/lenis-1.md
+</uploaded_documents>
+<timestamp>Monday, Oct 12, 2026, 2:46 AM (UTC-4)</timestamp>
+
+allow user to minimise or close results bar so they can use the map, a small mobile screen has little room to display both map and cards . enable delete studied areas. use https://github.com/uiverse-io/galaxy to update icons appropriately, and https://github.com/darkroomengineering/lenis for smooth scrolling. "Tangled" description should be an easier to identify word. use interactions to show user is using "suggest a plan" or the voice model. animated for more visual exprience
