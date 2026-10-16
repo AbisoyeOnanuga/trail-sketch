@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { placePhoto } from '../photos.ts'
 import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import {
@@ -14,6 +14,7 @@ import {
   type Study,
   type StudyKind,
 } from '../../shared/studies.ts'
+import { kindLabel } from '../library.ts'
 import { BackMark, MapMark } from '../icons/glyphs.tsx'
 import { ReachMark } from '../icons/marks.tsx'
 
@@ -42,12 +43,23 @@ export function PlacePreview({ kind, name }: { kind: StudyKind; name: string }) 
   return <StudyArt kind={kind} />
 }
 
+function Contours({ stroke }: { stroke: string }) {
+  return (
+    <g fill="none" stroke={stroke} strokeOpacity="0.35" strokeWidth="1.2">
+      <path d="M-4 30 C30 18 52 34 84 24 S140 8 164 18" />
+      <path d="M-4 42 C28 32 56 46 88 36 S138 22 164 30" />
+      <path d="M-4 54 C26 46 60 58 92 48 S136 36 164 42" />
+    </g>
+  )
+}
+
 export function StudyArt({ kind }: { kind: StudyKind }) {
   const [paper, mid, dark] = palettes[kind]
   if (kind === 'water') {
     return (
       <svg className="study-art" viewBox="0 0 160 100" aria-hidden="true">
         <rect width="160" height="100" fill={paper} />
+        <Contours stroke={dark} />
         <circle cx="124" cy="28" r="10" fill={mid} />
         <path d="M0 58 C28 50 48 66 80 58 C112 50 132 66 160 58 V100 H0 Z" fill={mid} />
         <path d="M0 74 C30 66 52 82 84 74 C116 66 136 82 160 74 V100 H0 Z" fill={dark} />
@@ -58,6 +70,7 @@ export function StudyArt({ kind }: { kind: StudyKind }) {
     return (
       <svg className="study-art" viewBox="0 0 160 100" aria-hidden="true">
         <rect width="160" height="100" fill={paper} />
+        <Contours stroke={dark} />
         <rect y="72" width="160" height="28" fill={mid} />
         <circle cx="42" cy="58" r="24" fill={dark} />
         <circle cx="78" cy="48" r="28" fill={mid} />
@@ -69,6 +82,7 @@ export function StudyArt({ kind }: { kind: StudyKind }) {
     return (
       <svg className="study-art" viewBox="0 0 160 100" aria-hidden="true">
         <rect width="160" height="100" fill={paper} />
+        <Contours stroke={dark} />
         <rect x="78" y="28" width="58" height="72" fill={mid} />
         <rect x="28" y="46" width="46" height="54" fill={dark} />
         <rect x="40" y="58" width="14" height="18" fill={paper} />
@@ -80,6 +94,7 @@ export function StudyArt({ kind }: { kind: StudyKind }) {
     return (
       <svg className="study-art" viewBox="0 0 160 100" aria-hidden="true">
         <rect width="160" height="100" fill={paper} />
+        <Contours stroke={dark} />
         <path d="M0 78 L46 40 L78 68 L160 28 V100 H0 Z" fill={mid} />
         <path d="M0 88 L58 62 L104 84 L160 58 V100 H0 Z" fill={dark} />
       </svg>
@@ -89,6 +104,7 @@ export function StudyArt({ kind }: { kind: StudyKind }) {
     <svg className="study-art" viewBox="0 0 160 100" aria-hidden="true">
       <rect width="160" height="62" fill={dark} />
       <rect y="62" width="160" height="38" fill={paper} />
+      <Contours stroke={paper} />
       <path d="M0 62 L36 44 L70 62 L108 36 L160 62 Z" fill={mid} />
       <circle cx="28" cy="22" r="8" fill={paper} />
     </svg>
@@ -143,15 +159,25 @@ type ExplorerProps = {
   onFeel: (feel: FeelWord | null) => void
   onPrompt: (text: string) => void
   studies: Study[]
-  focusedId: string | null
+  hoverId: string | null
   bestId: string | null
   promptActive: boolean
   loading: boolean
   hasArea: boolean
   notice: string | null
-  onFocus: (study: Study) => void
+  onHover: (id: string | null) => void
   onOpen: (study: Study) => void
   onUseMap: () => void
+}
+
+type Snap = 'peek' | 'half' | 'full'
+const snapOrder: Snap[] = ['peek', 'half', 'full']
+
+function snapHeights(): Record<Snap, number> {
+  const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  const barBottom = document.querySelector('.bar')?.getBoundingClientRect().bottom ?? 120
+  const full = Math.max(window.innerHeight - barBottom - 12, 16 * rem)
+  return { peek: 13.5 * rem, half: Math.min(window.innerHeight * 0.56, full), full }
 }
 
 export function Explorer({
@@ -165,35 +191,92 @@ export function Explorer({
   onFeel,
   onPrompt,
   studies,
-  focusedId,
+  hoverId,
   bestId,
   promptActive,
   loading,
   hasArea,
   notice,
-  onFocus,
+  onHover,
   onOpen,
   onUseMap,
 }: ExplorerProps) {
   const [draft, setDraft] = useState('')
   const [refine, setRefine] = useState(false)
+  const [snap, setSnap] = useState<Snap>('half')
+  const [dragHeight, setDragHeight] = useState<number | null>(null)
+  const drag = useRef<{ y: number; height: number; moved: boolean } | null>(null)
+  const sectionRef = useRef<HTMLElement | null>(null)
   const [rail, setRail] = useState<HTMLDivElement | null>(null)
-  const bestRef = useRef<HTMLButtonElement | null>(null)
   usePaneScroll(rail)
 
   useEffect(() => {
-    const node = bestRef.current
+    if (!hoverId || !rail) return
+    const node = rail.querySelector<HTMLElement>(`[data-study="${CSS.escape(hoverId)}"]`)
     if (!node) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    node.scrollIntoView({ inline: 'center', block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
-  }, [bestId, studies])
+    const top = node.offsetTop
+    if (top < rail.scrollTop || top + node.offsetHeight > rail.scrollTop + rail.clientHeight) {
+      rail.scrollTo({ top: Math.max(0, top - 8), behavior: 'smooth' })
+    }
+  }, [hoverId, rail])
+
+  function startDrag(event: PointerEvent<HTMLButtonElement>) {
+    const section = sectionRef.current
+    if (!section) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    drag.current = { y: event.clientY, height: section.getBoundingClientRect().height, moved: false }
+  }
+
+  function moveDrag(event: PointerEvent<HTMLButtonElement>) {
+    const state = drag.current
+    if (!state) return
+    const delta = state.y - event.clientY
+    if (Math.abs(delta) > 4) state.moved = true
+    if (!state.moved) return
+    const heights = snapHeights()
+    setDragHeight(Math.min(heights.full, Math.max(heights.peek * 0.8, state.height + delta)))
+  }
+
+  function endDrag() {
+    const state = drag.current
+    drag.current = null
+    if (!state) return
+    if (!state.moved) {
+      setSnap((current) => (current === 'peek' ? 'half' : current === 'half' ? 'full' : 'peek'))
+      return
+    }
+    const heights = snapHeights()
+    const current = dragHeight ?? state.height
+    const nearest = snapOrder.reduce((best, item) =>
+      Math.abs(heights[item] - current) < Math.abs(heights[best] - current) ? item : best,
+    )
+    setSnap(nearest)
+    setDragHeight(null)
+  }
 
   if (editing || interests.length === 0) {
     return <InterestGate initial={interests} onSave={onSaveInterests} />
   }
 
   return (
-    <section className="explorer" aria-label="Places to study">
+    <section
+      className={dragHeight === null ? 'explorer' : 'explorer is-dragging'}
+      aria-label="Places to study"
+      data-snap={snap}
+      ref={sectionRef}
+      style={dragHeight === null ? undefined : { height: `${dragHeight}px` }}
+    >
+      <button
+        type="button"
+        className="sheet-handle"
+        aria-label={`Places list, ${snap === 'full' ? 'full height' : snap === 'half' ? 'half height' : 'collapsed'}. Tap to resize.`}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <span aria-hidden="true" />
+      </button>
       <div className="explorer-nav">
         <button type="button" className="back-button" aria-label="Back" onClick={onEditInterests}>
           <BackMark />
@@ -212,8 +295,8 @@ export function Explorer({
         </button>
       </div>
       {refine ? (
-        <>
-          <div className="chips feel-row" role="group" aria-label="Feel of the study">
+        <div className="refine-panel">
+          <div className="chips" role="group" aria-label="Feel of the study">
             {feelWords.map((word) => (
               <button
                 key={word}
@@ -246,7 +329,7 @@ export function Explorer({
             />
             <button type="submit">Match</button>
           </form>
-        </>
+        </div>
       ) : null}
       <div className="explorer-row">
         <div className="chips" role="radiogroup" aria-label="How far">
@@ -266,7 +349,6 @@ export function Explorer({
         </div>
       </div>
       {notice ? <p className="explorer-note">{notice}</p> : null}
-      {loading ? <p className="explorer-note">Looking around…</p> : null}
       {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">
           {hasArea
@@ -274,35 +356,49 @@ export function Explorer({
             : 'Location is off. Use Near me, or search a place. Nothing is loaded until then.'}
         </p>
       ) : null}
-      {studies.length > 2 ? <p className="scroll-cue">More places follow in this list.</p> : null}
       <div className="rail" ref={setRail}>
-        <div className="rail-content">
-        {studies.map((study) => {
-          const focused = study.id === focusedId
-          const best = study.id === bestId
-          return (
-            <button
-              key={study.id}
-              type="button"
-              className={focused ? 'preview is-focused' : 'preview'}
-              ref={best ? bestRef : undefined}
-              onClick={() => (focused ? onOpen(study) : onFocus(study))}
-            >
-              <PlacePreview kind={study.kind} name={study.name} />
-              <span className="preview-copy">
-                <p className="eyebrow">{feelLabels[study.feel]}</p>
-                <h3>{study.name}</h3>
-                <p>
-                  {hasArea ? reachLine(study.distanceMeters) : 'Near you'}
-                  {best ? ` · ${promptActive ? 'Closest to that' : 'Fits today’s study'}` : ''}
-                </p>
-                <p className="preview-action">{focused ? 'Study this place' : 'Select'}</p>
-              </span>
-            </button>
-          )
-        })}
+        <div className="rail-content" aria-busy={loading}>
+          {loading
+            ? [0, 1, 2].map((item) => (
+                <div key={item} className="preview is-ghost" aria-hidden="true">
+                  <span className="study-art" />
+                  <span className="preview-copy">
+                    <span className="ghost-line" />
+                    <span className="ghost-line is-short" />
+                  </span>
+                </div>
+              ))
+            : studies.map((study) => {
+                const best = study.id === bestId
+                const hovered = study.id === hoverId
+                return (
+                  <button
+                    key={study.id}
+                    type="button"
+                    data-study={study.id}
+                    className={hovered ? 'preview is-hovered' : 'preview'}
+                    onClick={() => onOpen(study)}
+                    onMouseEnter={() => onHover(study.id)}
+                    onMouseLeave={() => onHover(null)}
+                    onFocus={() => onHover(study.id)}
+                    onBlur={() => onHover(null)}
+                  >
+                    <PlacePreview kind={study.kind} name={study.name} />
+                    <span className="preview-copy">
+                      <h3>{study.name}</h3>
+                      <p>
+                        {hasArea ? reachLine(study.distanceMeters) : 'Near you'} · {kindLabel(study.kind)}
+                        {best ? (
+                          <span className="preview-best">{promptActive ? 'Closest to that' : 'Best today'}</span>
+                        ) : null}
+                      </p>
+                    </span>
+                  </button>
+                )
+              })}
         </div>
       </div>
+      {loading ? <p className="sr" role="status">Looking for places nearby</p> : null}
     </section>
   )
 }

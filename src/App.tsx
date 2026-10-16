@@ -11,16 +11,26 @@ import {
 } from './api.ts'
 import type { Spot } from './data/spots.ts'
 import { Explorer, PlacePreview } from './explore/Explorer.tsx'
-import { forgetVisit, isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
+import {
+  forgetVisit,
+  isStudied,
+  markStudied,
+  noteVisitWeather,
+  readProfile,
+  readVisits,
+  rememberVisit,
+  type GoogleProfile,
+  type Visit,
+} from './library.ts'
+import { fallbackPlan } from './plan/fallback.ts'
 import { HideMark, LibraryMark, LocateMark, PlacesMark } from './icons/glyphs.tsx'
 import { MediumMark } from './icons/marks.tsx'
 import { LibrarySheet } from './library/LibrarySheet.tsx'
-import { MapView } from './map/MapView.tsx'
+import { MapView, type MapInset } from './map/MapView.tsx'
 import { FieldSheet } from './sheet/FieldSheet.tsx'
 import {
   mediumLabels,
   mediums,
-  usesPigment,
   type FieldCard,
   type Location,
   type Medium,
@@ -40,27 +50,6 @@ import {
 
 const INTERESTS_KEY = 'trail-sketch.interests'
 
-function localPlan(location: Location, medium: Medium, sky: string): FieldCard {
-  const pigment = usesPigment(medium)
-  const weather = sky || 'The weather is not in yet'
-  const colors = pigment ? ' The starting colors are a warm red, a green, and a blue.' : ''
-  return {
-    placeName: location.name,
-    longitude: location.longitude,
-    latitude: location.latitude,
-    medium,
-    motif: pigment ? 'Warm color against a quiet ground' : 'A dark shape against a light field',
-    values: ['Light', 'Middle', 'Dark'],
-    palette: pigment ? ['#d4532b', '#1f6b56', '#2f4d6e'] : [],
-    subject: `${location.name}. ${weather}. Start with light, middle, and dark.${colors}`,
-    leaveBefore: 'Stop when the light you came for has changed.',
-    spokenScript: `You are at ${location.name}. ${weather}. For ${mediumLabels[medium]}, start with a light, a middle, and a dark.${colors}`,
-    weatherLine: weather,
-    generatedAt: new Date().toISOString(),
-    source: 'sample',
-  }
-}
-
 function fallbackNote(code: string): string {
   const tail = 'These notes use the place, the weather, and the starting tones. Hear this plan can still read them.'
   if (code === 'rate_limited' || code === 'gemma_rate_limited') return `Gemma is busy. ${tail}`
@@ -78,6 +67,24 @@ function readInterests(): InterestId[] {
   } catch {
     return []
   }
+}
+
+// Panels docked to an edge cover part of the map; the camera centers in what stays visible.
+function insetFrom(bar: HTMLElement, panels: HTMLElement[]): MapInset {
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const inset = { top: Math.round(bar.getBoundingClientRect().bottom), bottom: 0, left: 0, right: 0 }
+  for (const panel of panels) {
+    const box = panel.getBoundingClientRect()
+    if (box.width === 0 || box.height === 0) continue
+    if (box.width > width * 0.8 && box.bottom >= height - 2) inset.bottom = Math.max(inset.bottom, height - box.top)
+    else if (box.left < width / 2 && box.right < width * 0.6) inset.left = Math.max(inset.left, box.right)
+    else if (box.right > width / 2 && box.left > width * 0.4) inset.right = Math.max(inset.right, width - box.left)
+  }
+  inset.bottom = Math.max(0, Math.min(Math.round(inset.bottom), height - inset.top - 120))
+  inset.left = Math.round(inset.left)
+  inset.right = Math.round(inset.right)
+  return inset
 }
 
 function samePlace(study: Study, location: Location): boolean {
@@ -124,6 +131,9 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [mediumOpen, setMediumOpen] = useState(false)
   const [places, setPlaces] = useState<'open' | 'map' | 'hidden'>('open')
+  const [hoverId, setHoverId] = useState<string | null>(null)
+  const appRef = useRef<HTMLDivElement | null>(null)
+  const barRef = useRef<HTMLElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
   const chooseId = useRef(0)
@@ -132,6 +142,17 @@ export default function App() {
     return () => {
       if (audioUrl.current) URL.revokeObjectURL(audioUrl.current)
     }
+  }, [])
+
+  useEffect(() => {
+    const bar = barRef.current
+    const app = appRef.current
+    if (!bar || !app) return
+    const measure = () => app.style.setProperty('--bar-h', `${Math.round(bar.getBoundingClientRect().bottom)}px`)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(bar)
+    return () => observer.disconnect()
   }, [])
 
   const areaRequest = useRef(0)
@@ -180,9 +201,22 @@ export default function App() {
     return null
   }, [selected, focused, area, touched])
 
-  const mapSpots = studies.map((study) =>
-    toSpot(study, isStudied(visits, study.latitude, study.longitude)),
+  const mapSpots = useMemo(
+    () => studies.map((study) => toSpot(study, isStudied(visits, study.latitude, study.longitude))),
+    [studies, visits],
   )
+
+  const studiedCount = visits.filter((visit) => visit.status === 'studied').length
+
+  const selectedKind = selected
+    ? (studies.find((study) => samePlace(study, selected))?.kind ??
+      visits.find(
+        (visit) =>
+          Math.abs(visit.latitude - selected.latitude) < 0.0004 &&
+          Math.abs(visit.longitude - selected.longitude) < 0.0004,
+      )?.kind ??
+      null)
+    : null
 
   const choose = useCallback(async (location: Location) => {
     const id = chooseId.current + 1
@@ -342,6 +376,7 @@ export default function App() {
           studiedAt: new Date().toISOString(),
           medium,
           weatherLine: weather,
+          status: 'visited',
         },
         profile?.sub ?? null,
       ),
@@ -371,27 +406,37 @@ export default function App() {
 
   async function writeStudy() {
     if (!selected) return
+    const place = selected
     setBusy('card')
     setNotice(null)
     try {
-      const next = await requestFieldCard({ ...selected, medium })
+      const next = await requestFieldCard({ ...place, medium })
       setCard(next)
       writeCachedCard(next)
       setPlanFromGemma(true)
       setPlanNote('Gemma wrote this plan.')
     } catch (error) {
       const code = error instanceof Error ? error.message : 'request_failed'
-      setCard(localPlan(selected, medium, weather))
+      setCard(fallbackPlan(place, medium, weather, selectedKind))
       setPlanFromGemma(false)
       setPlanNote(fallbackNote(code))
     } finally {
       setBusy(null)
     }
+    const study = studies.find((item) => samePlace(item, place))
+    setVisits(
+      markStudied(profile?.sub ?? null, place, {
+        id: study?.id ?? `spot-${Math.round(place.latitude * 1000)}-${Math.round(place.longitude * 1000)}`.slice(0, 40),
+        kind: selectedKind ?? 'viewpoint',
+        medium,
+        weatherLine: weather,
+      }),
+    )
   }
 
   async function listen() {
     if (!selected) return
-    const script = card?.spokenScript ?? localPlan(selected, medium, weather).spokenScript
+    const script = card?.spokenScript ?? fallbackPlan(selected, medium, weather, selectedKind).spokenScript
     setBusy('voice')
     setNotice(null)
     try {
@@ -418,14 +463,13 @@ export default function App() {
     setPlanFromGemma(false)
   }
 
-  function onPin(location: Location) {
-    const match = ranked.find((study) => samePlace(study, location))
+  function onPin(spot: Spot) {
+    const match = ranked.find((study) => study.id === spot.id)
     if (match) {
-      setTouched(true)
-      setPick({ key: rankingKey, id: match.id })
+      acceptStudy(match)
       return
     }
-    void choose(location)
+    void choose({ name: spot.name, longitude: spot.longitude, latitude: spot.latitude })
   }
 
   const promptActive = feel !== null || prompt.length > 0
@@ -433,6 +477,29 @@ export default function App() {
   const showExplorer = selected === null && !libraryOpen && (places === 'open' || interestGate)
   const showPlacesDock = selected === null && !libraryOpen && !interestGate && places !== 'open'
   const showStudy = selected !== null && !libraryOpen
+
+  const [mapInset, setMapInset] = useState<MapInset>({ top: 0, bottom: 0, left: 0, right: 0 })
+  useEffect(() => {
+    const app = appRef.current
+    const bar = barRef.current
+    if (!app || !bar) return
+    const panels = [...app.querySelectorAll<HTMLElement>('.explorer, .sheet')]
+    const measure = () => setMapInset((last) => {
+      const next = insetFrom(bar, panels)
+      const same = next.top === last.top && next.bottom === last.bottom && next.left === last.left && next.right === last.right
+      return same ? last : next
+    })
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(bar)
+    panels.forEach((panel) => observer.observe(panel))
+    window.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [showExplorer, showStudy, libraryOpen])
+
   const typed = query.trim().toLowerCase()
   const visualMatches =
     typed.length < 2
@@ -445,10 +512,9 @@ export default function App() {
   function chooseSuggestion(index: number) {
     const study = visualMatches[index]
     if (study) {
-      setTouched(true)
-      setPick((current) => ({ ...current, id: study.id }))
       setQuery('')
       setResults([])
+      acceptStudy(study)
       return
     }
     const place = results[index - visualMatches.length]
@@ -474,8 +540,8 @@ export default function App() {
   }
 
   return (
-    <div className={showExplorer ? 'app has-explorer' : showPlacesDock ? 'app has-places-dock' : 'app'}>
-      <header className="bar">
+    <div ref={appRef} className={showExplorer ? 'app has-explorer' : showPlacesDock ? 'app has-places-dock' : 'app'}>
+      <header className="bar" ref={barRef}>
         <div className="brand">
           <p className="mark">Trail Sketch</p>
         </div>
@@ -495,7 +561,7 @@ export default function App() {
           </button>
           <button type="button" className="locate" onClick={() => setLibraryOpen(true)}>
             <LibraryMark />
-            Studied{visits.length > 0 ? ` ${visits.length}` : ''}
+            Studied{studiedCount > 0 ? ` ${studiedCount}` : ''}
           </button>
           {saved && !selected ? (
             <button
@@ -612,7 +678,11 @@ export default function App() {
         spots={mapSpots}
         camera={camera}
         here={here}
+        inset={mapInset}
+        active={selected ? { ...selected, kind: selectedKind } : null}
+        hoverId={hoverId}
         onPin={onPin}
+        onHover={setHoverId}
         onGround={(location) => void choose(location)}
       />
 
@@ -634,15 +704,7 @@ export default function App() {
             setPlanNote(null)
             setPlanFromGemma(false)
           }}
-          kind={
-            studies.find((study) => samePlace(study, selected))?.kind ??
-            visits.find(
-              (visit) =>
-                Math.abs(visit.latitude - selected.latitude) < 0.0004 &&
-                Math.abs(visit.longitude - selected.longitude) < 0.0004,
-            )?.kind ??
-            null
-          }
+          kind={selectedKind}
           onWrite={() => void writeStudy()}
           onListen={() => void listen()}
           onFindHere={findHere}
@@ -659,16 +721,13 @@ export default function App() {
           onFeel={setFeel}
           onPrompt={setPrompt}
           studies={ranked}
-          focusedId={focused?.id ?? null}
+          hoverId={hoverId}
           bestId={ranked[0]?.id ?? null}
           promptActive={promptActive}
           loading={areaBusy}
           hasArea={area !== null}
           notice={notice}
-          onFocus={(study) => {
-            setTouched(true)
-            setPick({ key: rankingKey, id: study.id })
-          }}
+          onHover={setHoverId}
           onOpen={acceptStudy}
           onUseMap={() => setPlaces('map')}
         />

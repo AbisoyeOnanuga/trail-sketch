@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const mediums = ['graphite', 'ink', 'watercolor', 'oil'] as const
+export const mediums = ['graphite', 'charcoal', 'ink', 'watercolor', 'gouache', 'oil'] as const
 
 export const mediumSchema = z.enum(mediums)
 
@@ -55,11 +55,22 @@ export const searchResultSchema = z.object({
 
 export const mediumLabels: Record<Medium, string> = {
   graphite: 'Graphite',
+  charcoal: 'Charcoal',
   ink: 'Ink',
   watercolor: 'Watercolor',
+  gouache: 'Gouache',
   oil: 'Oil',
 }
 
+export const mediumPhrases: Record<Medium, string> = {
+  graphite: 'Sketching with graphite',
+  charcoal: 'Drawing in charcoal',
+  ink: 'Drawing in ink',
+  watercolor: 'Painting in watercolor',
+  gouache: 'Painting in gouache',
+  oil: 'Painting in oil',
+}
+
 export function usesPigment(medium: Medium): boolean {
-  return medium === 'watercolor' || medium === 'oil'
+  return medium === 'watercolor' || medium === 'gouache' || medium === 'oil'
 }

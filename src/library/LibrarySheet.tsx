@@ -34,6 +34,10 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDe
   usePaneScroll(pane)
   const [clientId, setClientId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const groups: Array<[string, Visit[]]> = [
+    ['Studied', visits.filter((visit) => visit.status === 'studied')],
+    ['Visited', visits.filter((visit) => visit.status !== 'studied')],
+  ]
 
   useEffect(() => {
     void loadGoogleClientId().then(setClientId)
@@ -99,7 +103,7 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDe
           Close
         </button>
       </div>
-      <h2>Places you have studied</h2>
+      <h2>Your places</h2>
       {profile ? (
         <p className="hint-inline">
           Signed in as {profile.name || profile.email}. These stays are kept on this phone under that Google account.
@@ -127,26 +131,40 @@ export function LibrarySheet({ visits, profile, onProfile, onClose, onOpen, onDe
       ) : null}
       {notice ? <p className="notice">{notice}</p> : null}
       {visits.length === 0 ? (
-        <p className="subject">When you accept a place, the date, time, and what it is go here.</p>
+        <p className="subject">
+          Places you open are kept as visited. Ask for a plan at a place and it moves to studied, with the date, the
+          medium, and the weather.
+        </p>
       ) : (
-        <ul className="visit-list">
-          {visits.map((visit) => (
-            <li key={`${visit.id}-${visit.studiedAt}`}>
-              <button type="button" onClick={() => onOpen(visit)}>
-                <span className={`pin-key pin-${visit.kind}`} aria-hidden="true" />
-                <span>
-                  <strong>{visit.name}</strong>
-                  <small>
-                    {kindLabel(visit.kind)} · {mediumName(visit.medium)} · {visitStamp(visit.studiedAt)}
-                  </small>
-                </span>
-              </button>
-              <button type="button" className="text-button" onClick={() => onDelete(visit)}>
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          {groups.map(([title, items]) =>
+            items.length === 0 ? null : (
+              <div key={title} className="visit-group">
+                <p className="field-label">
+                  {title} · {items.length}
+                </p>
+                <ul className="visit-list">
+                  {items.map((visit) => (
+                    <li key={`${visit.id}-${visit.studiedAt}`} className={visit.status === 'studied' ? 'is-studied' : ''}>
+                      <button type="button" onClick={() => onOpen(visit)}>
+                        <span className={`pin-key pin-${visit.kind}`} aria-hidden="true" />
+                        <span>
+                          <strong>{visit.name}</strong>
+                          <small>
+                            {kindLabel(visit.kind)} · {mediumName(visit.medium)} · {visitStamp(visit.studiedAt)}
+                          </small>
+                        </span>
+                      </button>
+                      <button type="button" className="text-button" onClick={() => onDelete(visit)}>
+                        Delete
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ),
+          )}
+        </>
       )}
       </div>
     </section>

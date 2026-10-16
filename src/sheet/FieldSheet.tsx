@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { mediumLabels, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
+import { mediumPhrases, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
+import { placeSeed, toneNotes } from '../plan/fallback.ts'
 import { PlacePreview } from '../explore/Explorer.tsx'
 import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import { CloseMark, DirectionsMark, HearMark, LocateMark, PlanMark } from '../icons/glyphs.tsx'
@@ -70,18 +71,22 @@ export function FieldSheet({
   const pigments = pigment
     ? study && study.palette.length
       ? namePigments(study.palette)
-      : pigmentsForKind(kind, weatherLine)
+      : pigmentsForKind(kind, weatherLine, placeSeed(location))
     : []
   const fromHere = here
     ? distanceMeters(here.latitude, here.longitude, location.latitude, location.longitude)
     : null
-  const values = study?.values ?? ['Light', 'Middle', 'Dark']
+  const defaults = toneNotes(kind)
+  const tones = defaults.map((fallback, index) => {
+    const note = study?.values[index]?.trim() ?? ''
+    return note && !/^(light|middle|mid|dark)\.?$/i.test(note) ? note : fallback
+  })
 
   return (
     <section className={busy ? 'sheet is-busy' : 'sheet'} aria-label="Field study" ref={setPane}>
       <div className="sheet-body">
       <div className="sheet-top">
-        <p className="eyebrow">{mediumLabels[medium]}</p>
+        <p className="eyebrow">{mediumPhrases[medium]}</p>
         <button type="button" className="text-button" onClick={onClose}>
           <CloseMark />
           Close
@@ -114,16 +119,18 @@ export function FieldSheet({
       ) : null}
       {notice ? <p className="notice">{notice}</p> : null}
 
-      <p className="field-label">Suggested values</p>
-      <p className="hint-inline">Light, middle, and dark are starting tones for the page. You choose what stays.</p>
-      <div className="values" aria-label="Suggested values">
-        {['Light', 'Middle', 'Dark'].map((label, index) => (
-          <div key={label} className={`value value-${index + 1}`}>
-            <span className="value-name">{label}</span>
-            <span>{values[index] ?? label}</span>
-          </div>
+      <p className="field-label">Suggested tones for your study</p>
+      <p className="hint-inline">Lightest to darkest, and what holds each tone here. Starting points; you choose what stays.</p>
+      <ol className="values" aria-label="Suggested tones">
+        {tones.map((note, index) => (
+          <li key={index} className={`value value-${index + 1}`}>
+            <span className="value-step" aria-hidden="true">
+              {index + 1}
+            </span>
+            <span>{note}</span>
+          </li>
         ))}
-      </div>
+      </ol>
 
       {pigment ? (
         <>

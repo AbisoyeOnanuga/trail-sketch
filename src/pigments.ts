@@ -17,16 +17,26 @@ const catalog: Pigment[] = [
   { name: 'Raw umber', hex: '#6b5040' },
   { name: 'Ivory black', hex: '#2a2723' },
   { name: 'Titanium white', hex: '#f4efe6' },
+  { name: 'Naples yellow', hex: '#e9d39a' },
+  { name: 'Cobalt teal', hex: '#3e9c96' },
+  { name: 'Hooker’s green', hex: '#2f5a3a' },
+  { name: 'Indigo', hex: '#2b3550' },
+  { name: 'Rose madder', hex: '#c86a76' },
+  { name: 'Terre verte', hex: '#7d8f72' },
+  { name: 'Venetian red', hex: '#9a4a37' },
+  { name: 'Raw sienna', hex: '#b77a3e' },
+  { name: 'Neutral tint', hex: '#3d3d42' },
 ]
 
-const paper = '#f3ecdf'
+const paper = '#f4f2ec'
 
-const kindSets: Record<StudyKind, [string, string, string]> = {
-  water: ['Cerulean', 'Raw umber', 'Payne’s gray'],
-  park: ['Sap green', 'Yellow ochre', 'Burnt sienna'],
-  viewpoint: ['Cobalt blue', 'Cadmium red', 'Lemon yellow'],
-  architecture: ['Raw umber', 'Yellow ochre', 'Ivory black'],
-  hill: ['Yellow ochre', 'Sap green', 'Payne’s gray'],
+const kindPools: Record<StudyKind | 'any', string[]> = {
+  water: ['Cerulean', 'Naples yellow', 'Cobalt teal', 'Raw umber', 'Payne’s gray', 'Indigo'],
+  park: ['Lemon yellow', 'Naples yellow', 'Sap green', 'Terre verte', 'Hooker’s green', 'Burnt sienna'],
+  viewpoint: ['Naples yellow', 'Rose madder', 'Cerulean', 'Cadmium red', 'Ultramarine', 'Indigo'],
+  architecture: ['Naples yellow', 'Yellow ochre', 'Raw sienna', 'Venetian red', 'Raw umber', 'Neutral tint'],
+  hill: ['Lemon yellow', 'Yellow ochre', 'Terre verte', 'Sap green', 'Burnt sienna', 'Payne’s gray'],
+  any: ['Naples yellow', 'Cadmium red', 'Cerulean', 'Viridian', 'Ultramarine', 'Raw umber'],
 }
 
 export const inkChoices = [
@@ -78,11 +88,35 @@ function byName(name: string): Pigment {
   return catalog.find((item) => item.name === name) ?? catalog[0]
 }
 
-export function pigmentsForKind(kind: StudyKind | null, weather: string): Pigment[] {
-  const cool = /overcast|cloud|rain|flat|grey|gray|cool|fog/i.test(weather)
-  const names = kind ? kindSets[kind] : (['Cadmium red', 'Viridian', 'Cobalt blue'] as [string, string, string])
-  const ordered = cool ? [names[2], names[0], names[1]] : [...names]
-  return ordered.map(byName)
+function hash(text: string): number {
+  let value = 2166136261
+  for (let index = 0; index < text.length; index += 1) {
+    value ^= text.charCodeAt(index)
+    value = Math.imul(value, 16777619)
+  }
+  return value >>> 0
+}
+
+function season(date: Date): string {
+  const month = date.getMonth()
+  if (month <= 1 || month === 11) return 'winter'
+  if (month <= 4) return 'spring'
+  if (month <= 7) return 'summer'
+  return 'autumn'
+}
+
+function weatherBucket(weather: string): string {
+  if (/rain|drizzle|snow|fog|thunder/i.test(weather)) return 'wet'
+  if (/flat|overcast/i.test(weather)) return 'flat'
+  if (/soft|cloud/i.test(weather)) return 'soft'
+  return 'open'
+}
+
+/** One light, one middle, and one dark from the place type's pool, varied by place, weather, and season. */
+export function pigmentsForKind(kind: StudyKind | null, weather: string, seed = ''): Pigment[] {
+  const pool = kindPools[kind ?? 'any'].map(byName).sort((a, b) => luminance(b.hex) - luminance(a.hex))
+  const pick = hash(`${seed}|${weatherBucket(weather)}|${season(new Date())}`)
+  return [pool[pick % 2], pool[2 + ((pick >>> 3) % 2)], pool[4 + ((pick >>> 6) % 2)]]
 }
 
 export function namePigments(hexes: string[]): Pigment[] {

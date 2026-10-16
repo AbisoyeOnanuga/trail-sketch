@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { mediums, type Medium } from '../shared/contract.ts'
+import { mediumLabels, mediums, type Medium } from '../shared/contract.ts'
 import { studyKinds, type StudyKind } from '../shared/studies.ts'
 
 const visitSchema = z.object({
@@ -11,6 +11,7 @@ const visitSchema = z.object({
   studiedAt: z.string().max(40),
   medium: z.enum(mediums),
   weatherLine: z.string().max(180),
+  status: z.enum(['visited', 'studied']).default('visited'),
 })
 
 export type Visit = z.infer<typeof visitSchema>
@@ -56,13 +57,36 @@ export function readVisits(sub: string | null): Visit[] {
   }
 }
 
+function samePoint(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }): boolean {
+  return Math.abs(a.latitude - b.latitude) < 0.0004 && Math.abs(a.longitude - b.longitude) < 0.0004
+}
+
 export function rememberVisit(visit: Visit, sub: string | null): Visit[] {
-  const current = readVisits(sub).filter(
-    (item) => Math.abs(item.latitude - visit.latitude) > 0.0004 || Math.abs(item.longitude - visit.longitude) > 0.0004,
-  )
-  const next = [visit, ...current].slice(0, 80)
+  const existing = readVisits(sub)
+  const earlier = existing.find((item) => samePoint(item, visit))
+  const status = earlier?.status === 'studied' && visit.status === 'visited' ? 'studied' : visit.status
+  const current = existing.filter((item) => !samePoint(item, visit))
+  const next = [{ ...visit, status }, ...current].slice(0, 80)
   localStorage.setItem(visitKey(sub), JSON.stringify(next))
   return next
+}
+
+export function markStudied(
+  sub: string | null,
+  place: { latitude: number; longitude: number; name: string },
+  details: Pick<Visit, 'id' | 'kind' | 'medium' | 'weatherLine'>,
+): Visit[] {
+  return rememberVisit(
+    {
+      ...details,
+      name: place.name.slice(0, 80) || 'This spot',
+      latitude: place.latitude,
+      longitude: place.longitude,
+      studiedAt: new Date().toISOString(),
+      status: 'studied',
+    },
+    sub,
+  )
 }
 
 export function forgetVisit(id: string, studiedAt: string, sub: string | null): Visit[] {
@@ -93,9 +117,7 @@ export function visitStamp(iso: string): string {
 }
 
 export function isStudied(visits: Visit[], latitude: number, longitude: number): boolean {
-  return visits.some(
-    (visit) => Math.abs(visit.latitude - latitude) < 0.0004 && Math.abs(visit.longitude - longitude) < 0.0004,
-  )
+  return visits.some((visit) => visit.status === 'studied' && samePoint(visit, { latitude, longitude }))
 }
 
 export function kindLabel(kind: StudyKind): string {
@@ -107,8 +129,5 @@ export function kindLabel(kind: StudyKind): string {
 }
 
 export function mediumName(medium: Medium): string {
-  if (medium === 'watercolor') return 'Watercolor'
-  if (medium === 'graphite') return 'Graphite'
-  if (medium === 'ink') return 'Ink'
-  return 'Oil'
+  return mediumLabels[medium]
 }

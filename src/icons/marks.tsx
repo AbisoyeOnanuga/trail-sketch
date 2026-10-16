@@ -1,7 +1,9 @@
 const mediumEmoji: Record<string, string> = {
   graphite: '✏️',
+  charcoal: '🖍️',
   ink: '🖊️',
   watercolor: '💧',
+  gouache: '🖌️',
   oil: '🎨',
 }
 

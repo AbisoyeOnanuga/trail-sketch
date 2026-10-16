@@ -43,6 +43,15 @@ function offTheRails(card: { motif: string; subject: string; spokenScript: strin
   return false
 }
 
+const mediumNotes: Record<FieldCardRequest['medium'], string> = {
+  graphite: 'Graphite: soft pencil on paper; build tone with hatching and the side of the lead.',
+  charcoal: 'Charcoal: big dark masses first, lift lights with an eraser, keep edges soft.',
+  ink: 'Ink: pen line and diluted washes of one ink; decide the darks early because ink does not erase.',
+  watercolor: 'Watercolor: transparent washes; save the paper for the lightest light.',
+  gouache: 'Gouache: opaque water-based paint; lights can go over darks, work flat shapes.',
+  oil: 'Oil: opaque paint; block in the darks and middle tones, then the lights.',
+}
+
 export async function writeFieldCard(
   request: FieldCardRequest,
   observedWeather: string,
@@ -67,10 +76,11 @@ export async function writeFieldCard(
           `Place: ${oneLine(request.name, 120)}`,
           `Medium: ${request.medium}`,
           `Observed weather: ${oneLine(observedWeather, 180)}`,
-          'Return JSON with motif, values (exactly 3 short tone notes), palette (exactly 3 hex colors when the medium is watercolor or oil, otherwise an empty array), subject (two sentences about what to study on the page), leaveBefore (one sentence about the light changing), spokenScript (under 70 spoken words, no stage directions), weatherLine (one short line about the light).',
+          'Return JSON with motif, values (exactly 3 tone notes, lightest to darkest, each naming what in the scene holds that tone, for example "sky and wet paper"; never just the words light, middle, or dark), palette (exactly 3 hex colors when the medium uses color, otherwise an empty array), subject (two sentences about what to study on the page), leaveBefore (one sentence about the light changing), spokenScript (under 70 spoken words, no stage directions, write temperatures as words such as "eleven degrees Celsius"), weatherLine (one short line about the light).',
           pigment
             ? 'This medium uses color. Choose three different pigments that fit this place and this weather. Do not repeat one fixed set of colors.'
             : 'This medium is drawing. palette must be an empty array. Talk about value, edge, and line.',
+          mediumNotes[request.medium],
         ].join('\n'),
       },
     ],
