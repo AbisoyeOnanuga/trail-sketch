@@ -26,8 +26,16 @@ function kindOf(tags: Tags): StudyKind {
     return 'water'
   }
   if (tags.tourism === 'viewpoint') return 'viewpoint'
-  if (tags.natural === 'peak' || tags.natural === 'ridge' || tags.natural === 'cliff') return 'hill'
-  if (tags.man_made === 'bridge' || tags.historic || tags.building || tags.amenity === 'place_of_worship') {
+  if (tags.natural === 'peak' || tags.natural === 'ridge') return 'hill'
+  if (
+    tags.place === 'square' ||
+    tags.tourism === 'attraction' ||
+    tags.man_made === 'tower' ||
+    tags.man_made === 'bridge' ||
+    tags.historic ||
+    tags.building ||
+    tags.amenity === 'place_of_worship'
+  ) {
     return 'architecture'
   }
   return 'park'
@@ -40,7 +48,13 @@ function placeName(tags: Tags, kind: StudyKind): string {
   if (kind === 'viewpoint') return 'A viewpoint'
   if (kind === 'hill') return 'A ridge'
   if (kind === 'architecture') return 'A structure'
-  return 'A park'
+  return 'A green'
+}
+
+function isPublic(tags: Tags): boolean {
+  if (tags.access === 'private' || tags.access === 'no') return false
+  if (tags.military) return false
+  return true
 }
 
 function point(element: OverpassElement): { latitude: number; longitude: number } | null {
@@ -53,27 +67,24 @@ function point(element: OverpassElement): { latitude: number; longitude: number 
 
 async function overpass(query: string): Promise<OverpassElement[]> {
   for (const endpoint of ENDPOINTS) {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Accept: 'application/json',
-            'User-Agent': USER_AGENT,
-          },
-          body: new URLSearchParams({ data: query }),
-          signal: AbortSignal.timeout(18_000),
-        })
-        if (response.ok) {
-          const payload = (await response.json()) as { elements?: OverpassElement[] }
-          return Array.isArray(payload.elements) ? payload.elements : []
-        }
-        if (response.status < 500 && response.status !== 429) break
-      } catch {
-        // The public place service sometimes drops a request. One retry is enough.
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+          'User-Agent': USER_AGENT,
+        },
+        body: new URLSearchParams({ data: query }),
+        signal: AbortSignal.timeout(12_000),
+      })
+      if (response.ok) {
+        const payload = (await response.json()) as { elements?: OverpassElement[] }
+        return Array.isArray(payload.elements) ? payload.elements : []
       }
-      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 500))
+      if (response.status < 500 && response.status !== 429) continue
+    } catch {
+      // The next public server gets one try. A wide search must not stall the list.
     }
   }
   throw new Error('nearby_failed')
@@ -84,26 +95,31 @@ export async function nearbyStudies(latitude: number, longitude: number, radius:
   const hit = cache.get(key)
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit.studies
 
-  const km = radius / 1000
-  const dLat = km / 111
-  const dLon = km / (111 * Math.max(0.2, Math.cos((latitude * Math.PI) / 180)))
-  const box = `(${(latitude - dLat).toFixed(5)},${(longitude - dLon).toFixed(5)},${(latitude + dLat).toFixed(5)},${(longitude + dLon).toFixed(5)})`
-  const query = `[out:json][timeout:15];(
-way["leisure"="park"]["name"]${box};
-way["natural"="water"]["name"]${box};
-node["tourism"="viewpoint"]${box};
-way["man_made"="bridge"]["name"]${box};
-);out center 24;`
+  const around = `${Math.round(radius)},${latitude},${longitude}`
+  const nearWays = `${Math.round(Math.min(radius, 4500))},${latitude},${longitude}`
+  const query = `[out:json][timeout:12];(
+node(around:${around})["name"]["tourism"="viewpoint"];
+node(around:${around})["name"]["historic"="monument"];
+node(around:${around})["name"]["amenity"="place_of_worship"];
+node(around:${around})["name"]["man_made"="tower"];
+node(around:${around})["name"]["place"="square"];
+way(around:${nearWays})["name"]["leisure"="park"];
+way(around:${nearWays})["name"]["leisure"="garden"];
+way(around:${nearWays})["name"]["natural"="water"];
+way(around:${nearWays})["name"]["natural"="beach"];
+);out center 36;`
 
   const elements = await overpass(query)
   const studies: Study[] = []
   const seen = new Set<string>()
   for (const element of elements) {
     const tags = element.tags ?? {}
+    if (!isPublic(tags)) continue
     const at = point(element)
     if (!at) continue
     const kind = kindOf(tags)
     const name = placeName(tags, kind)
+    if (/edge walk|via ferrata|bungee|climb the/i.test(name)) continue
     const stamp = `${name.toLowerCase()}:${kind}`
     if (seen.has(stamp)) continue
     seen.add(stamp)
@@ -122,11 +138,20 @@ way["man_made"="bridge"]["name"]${box};
     if (parsed.success && parsed.data.distanceMeters <= radius) studies.push(parsed.data)
   }
   studies.sort((a, b) => a.distanceMeters - b.distanceMeters)
-  studies.splice(12)
+  const balanced: Study[] = []
+  const counts = new Map<string, number>()
+  for (const study of studies) {
+    const count = counts.get(study.kind) ?? 0
+    if (count >= 3) continue
+    balanced.push(study)
+    counts.set(study.kind, count + 1)
+    if (balanced.length >= 12) break
+  }
+  balanced.sort((a, b) => a.distanceMeters - b.distanceMeters)
   if (cache.size > 40) {
     const oldest = cache.keys().next().value
     if (oldest) cache.delete(oldest)
   }
-  cache.set(key, { at: Date.now(), studies })
-  return studies
+  cache.set(key, { at: Date.now(), studies: balanced })
+  return balanced
 }

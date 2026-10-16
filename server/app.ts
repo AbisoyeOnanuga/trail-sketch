@@ -59,9 +59,15 @@ export function createApp(): Hono {
     const query = (c.req.query('q') ?? '').replace(/[^\p{L}\p{N}\s,'./-]/gu, '').trim().slice(0, 80)
     if (query.length < 2) return c.json({ error: 'query_too_short' }, 400)
     const key = `search:${clientKey(c.req.header('x-forwarded-for'))}`
-    if (!allowRequest(key, 20, 60_000)) return c.json({ error: 'rate_limited' }, 429)
+    if (!allowRequest(key, 40, 60_000)) return c.json({ error: 'rate_limited' }, 429)
+    const latitude = Number(c.req.query('latitude'))
+    const longitude = Number(c.req.query('longitude'))
+    const near =
+      Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
+        ? { latitude, longitude }
+        : undefined
     try {
-      const results = await searchPlaces(query)
+      const results = await searchPlaces(query, near)
       return c.json({ results })
     } catch (error) {
       const failed = fail(error)

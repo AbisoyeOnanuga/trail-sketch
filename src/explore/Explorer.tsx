@@ -108,10 +108,10 @@ function InterestGate({
     setPicked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
   }
   return (
-    <section className="gate" aria-label="What you look for">
+    <section className="gate" aria-label="What would you like to study today">
       <p className="eyebrow">Before the walk</p>
-      <h2>What do you look for?</h2>
-      <p className="gate-copy">Pick the things you want to study. The places around you line up from that.</p>
+      <h2>What would you like to study today?</h2>
+      <p className="gate-copy">Pick what you want to study. Places near you line up from that.</p>
       <div className="chips" role="group" aria-label="Interests">
         {interestIds.map((id) => (
           <button
@@ -177,6 +177,7 @@ export function Explorer({
   onUseMap,
 }: ExplorerProps) {
   const [draft, setDraft] = useState('')
+  const [refine, setRefine] = useState(false)
   const [rail, setRail] = useState<HTMLDivElement | null>(null)
   const bestRef = useRef<HTMLButtonElement | null>(null)
   usePaneScroll(rail)
@@ -202,7 +203,52 @@ export function Explorer({
           <MapMark />
           Use the map
         </button>
+        <button
+          type="button"
+          className="text-button"
+          aria-expanded={refine}
+          onClick={() => setRefine((open) => !open)}
+        >
+          Refine
+        </button>
       </div>
+      {refine ? (
+        <>
+          <div className="chips feel-row" role="group" aria-label="Feel of the study">
+            {feelWords.map((word) => (
+              <button
+                key={word}
+                type="button"
+                aria-pressed={feel === word}
+                className={feel === word ? 'is-on' : ''}
+                onClick={() => onFeel(feel === word ? null : word)}
+              >
+                {feelLabels[word]}
+              </button>
+            ))}
+          </div>
+          <form
+            className="search prompt"
+            onSubmit={(event) => {
+              event.preventDefault()
+              onPrompt(draft.trim())
+            }}
+          >
+            <label className="field-label" htmlFor="study-prompt">
+              What to match
+            </label>
+            <input
+              id="study-prompt"
+              value={draft}
+              maxLength={160}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Light, subject, or mood"
+              autoComplete="off"
+            />
+            <button type="submit">Match</button>
+          </form>
+        </>
+      ) : null}
       <div className="explorer-row">
         <div className="chips" role="radiogroup" aria-label="How far">
           {distanceChoices.map((choice) => (
@@ -220,46 +266,13 @@ export function Explorer({
           ))}
         </div>
       </div>
-      <div className="chips feel-row" role="group" aria-label="Feel of the study">
-        {feelWords.map((word) => (
-          <button
-            key={word}
-            type="button"
-            aria-pressed={feel === word}
-            className={feel === word ? 'is-on' : ''}
-            onClick={() => onFeel(feel === word ? null : word)}
-          >
-            {feelLabels[word]}
-          </button>
-        ))}
-      </div>
-      <form
-        className="search prompt"
-        onSubmit={(event) => {
-          event.preventDefault()
-          onPrompt(draft.trim())
-        }}
-      >
-        <label className="field-label" htmlFor="study-prompt">
-          What to match
-        </label>
-        <input
-          id="study-prompt"
-          value={draft}
-          maxLength={160}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Light, subject, or mood"
-          autoComplete="off"
-        />
-        <button type="submit">Match</button>
-      </form>
       {notice ? <p className="explorer-note">{notice}</p> : null}
       {loading ? <p className="explorer-note">Looking around…</p> : null}
       {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">
           {hasArea
-            ? 'Nothing named is this close. Try a hike, or describe a subject.'
-            : 'Location is off. These are farther trips, or describe a subject nearby.'}
+            ? 'Nothing named is this close. Try a hike, or open Refine.'
+            : 'Location is off. Use Near me, or search a place. Nothing is loaded until then.'}
         </p>
       ) : null}
       {studies.length > 2 ? <p className="scroll-cue">More places follow in this list.</p> : null}
@@ -281,8 +294,8 @@ export function Explorer({
                 <p className="eyebrow">{feelLabels[study.feel]}</p>
                 <h3>{study.name}</h3>
                 <p>
-                  {hasArea ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'A trip'}
-                  {best ? ` · ${promptActive ? 'Closest to that' : 'Fits what you look for'}` : ''}
+                  {hasArea ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'Near you'}
+                  {best ? ` · ${promptActive ? 'Closest to that' : 'Fits today’s study'}` : ''}
                 </p>
                 <p className="preview-action">{focused ? 'Study this place' : 'Select'}</p>
               </span>

@@ -1,8 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { mediumLabels, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
 import { PlacePreview } from '../explore/Explorer.tsx'
 import { usePaneScroll } from '../scroll/usePaneScroll.ts'
 import { CloseMark, DirectionsMark, HearMark, LocateMark, PlanMark } from '../icons/glyphs.tsx'
+import {
+  inkChoices,
+  inkGrades,
+  mixOnPaper,
+  namePigments,
+  pigmentsForKind,
+  suggestInk,
+  textOn,
+  type InkId,
+} from '../pigments.ts'
 import { distanceMeters, formatDistance, type StudyKind } from '../../shared/studies.ts'
 
 type FieldSheetProps = {
@@ -51,11 +61,21 @@ export function FieldSheet({
   usePaneScroll(pane)
   const study = card ?? null
   const pigment = usesPigment(medium)
+  const [pickedInk, setPickedInk] = useState<InkId | null>(null)
+  useEffect(() => {
+    setPickedInk(null)
+  }, [location.latitude, location.longitude])
+  const inkId = pickedInk ?? suggestInk(kind, weatherLine || study?.weatherLine || '')
+  const ink = inkChoices.find((item) => item.id === inkId) ?? inkChoices[0]
+  const pigments = pigment
+    ? study && study.palette.length
+      ? namePigments(study.palette)
+      : pigmentsForKind(kind, weatherLine)
+    : []
   const fromHere = here
     ? distanceMeters(here.latitude, here.longitude, location.latitude, location.longitude)
     : null
   const values = study?.values ?? ['Light', 'Middle', 'Dark']
-  const palette = study && pigment ? study.palette : []
 
   return (
     <section className={busy ? 'sheet is-busy' : 'sheet'} aria-label="Field study" ref={setPane}>
@@ -108,12 +128,46 @@ export function FieldSheet({
       {pigment ? (
         <>
           <p className="field-label">Suggested pigments</p>
+          <p className="hint-inline">Named colors for this place. The lettering stays readable on each swatch.</p>
           <div className="swatches" aria-label="Suggested pigments">
-            {(palette.length ? palette : ['#d4532b', '#1f6b56', '#2f4d6e']).map((color) => (
-              <div key={color} className="swatch" style={{ background: color }}>
-                <span>{color}</span>
+            {pigments.map((item) => (
+              <div key={item.name} className="swatch" style={{ background: item.hex, color: textOn(item.hex) }}>
+                <span className="value-name">{item.name}</span>
               </div>
             ))}
+          </div>
+        </>
+      ) : null}
+      {medium === 'ink' ? (
+        <>
+          <p className="field-label">Ink</p>
+          <p className="hint-inline">
+            Grades are washes of one ink, from thin to full. The place suggests a starting ink. You choose.
+          </p>
+          <div className="ink-row" role="radiogroup" aria-label="Ink color">
+            {inkChoices.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="radio"
+                aria-checked={inkId === item.id}
+                className={inkId === item.id ? 'is-on' : ''}
+                onClick={() => setPickedInk(item.id)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+          <div className="swatches" aria-label="Ink grades">
+            {inkGrades.map((grade) => {
+              const color = mixOnPaper(ink.hex, grade.amount)
+              return (
+                <div key={grade.name} className="swatch" style={{ background: color, color: textOn(color) }}>
+                  <span className="value-name">{grade.name}</span>
+                  <span>{ink.name}</span>
+                </div>
+              )
+            })}
           </div>
         </>
       ) : null}

@@ -45,7 +45,49 @@ export async function reverseName(latitude: number, longitude: number): Promise<
   return oneLine(raw) || 'This spot'
 }
 
-export async function searchPlaces(query: string): Promise<Location[]> {
+export async function searchPlaces(
+  query: string,
+  near?: { latitude: number; longitude: number },
+): Promise<Location[]> {
+  try {
+    const url = new URL('https://photon.komoot.io/api/')
+    url.searchParams.set('q', query)
+    url.searchParams.set('limit', '5')
+    url.searchParams.set('lang', 'en')
+    if (near) {
+      url.searchParams.set('lat', String(near.latitude))
+      url.searchParams.set('lon', String(near.longitude))
+    }
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (response.ok) {
+      const data = (await response.json()) as {
+        features?: Array<{
+          geometry?: { coordinates?: number[] }
+          properties?: { name?: string; city?: string; state?: string; country?: string }
+        }>
+      }
+      const results: Location[] = []
+      for (const feature of data.features ?? []) {
+        const [longitude, latitude] = feature.geometry?.coordinates ?? []
+        const props = feature.properties ?? {}
+        const place = [props.city, props.state, props.country].filter(Boolean).slice(0, 1).join('')
+        const label = props.name ? (place ? `${props.name}, ${place}` : props.name) : place
+        const parsed = locationSchema.safeParse({
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          name: oneLine(label),
+        })
+        if (parsed.success) results.push(parsed.data)
+      }
+      if (results.length > 0) return results
+    }
+  } catch {
+    // Photon is the free autocomplete index. Nominatim is the spare lookup.
+  }
+
   const data = (await nominatim('/search', {
     format: 'jsonv2',
     q: query,

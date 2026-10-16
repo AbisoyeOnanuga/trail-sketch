@@ -9,9 +9,9 @@
   --viridian: #1f6b56;
   --cobalt: #2c4a68;
   --shadow: 0 16px 40px rgba(28, 25, 20, 0.16);
-  --vellum: color-mix(in srgb, var(--sheet) 62%, transparent);
-  --vellum-strong: color-mix(in srgb, var(--sheet) 80%, transparent);
-  --card: color-mix(in srgb, #fffaf3 46%, transparent);
+  --vellum: color-mix(in srgb, var(--sheet) 84%, transparent);
+  --vellum-strong: color-mix(in srgb, var(--sheet) 90%, transparent);
+  --card: color-mix(in srgb, #fffaf3 86%, transparent);
   --edge: color-mix(in srgb, var(--ink) 18%, transparent);
   --blur: 12px;
   --display: 'Fraunces', 'Iowan Old Style', Palatino, serif;
@@ -86,7 +86,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding: 0.8rem 0.85rem 0.7rem;
   background: var(--vellum);
   border: 1px solid var(--edge);
-  border-radius: 1.25rem;
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 252, 246, 0.7);
   backdrop-filter: blur(var(--blur)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2);
@@ -99,6 +98,25 @@ button:disabled { cursor: progress; opacity: 0.7; }
   font-size: 1.55rem;
   letter-spacing: -0.03em;
   line-height: 1;
+}
+
+.mark::after {
+  content: '';
+  display: block;
+  width: 2.6rem;
+  height: 2px;
+  margin-top: 0.32rem;
+  background: var(--cadmium);
+  border-radius: 2px;
+  transform: rotate(-2deg);
+  transform-origin: left center;
+}
+
+.bar, .explorer, .gate, .sheet, .suggest, .places-dock {
+  border-radius: 1.45rem 1.05rem 1.2rem 0.85rem;
+  background-image:
+    linear-gradient(90deg, transparent 0.72rem, rgba(212, 83, 43, 0.45) 0.72rem, rgba(212, 83, 43, 0.45) calc(0.72rem + 1px), transparent calc(0.72rem + 1px)),
+    repeating-linear-gradient(180deg, transparent 0 6px, rgba(44, 74, 104, 0.045) 6px 7px);
 }
 
 .tag, .eyebrow, .weather, .hint, .toast {
@@ -157,7 +175,7 @@ button:disabled { cursor: progress; opacity: 0.7; }
   border-color: var(--viridian);
 }
 
-.bar-actions { display: flex; gap: 0.4rem; }
+.bar-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
 .results {
   position: absolute;
@@ -212,7 +230,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding: 1rem 1rem 1.1rem;
   background: var(--vellum-strong);
   border: 1px solid var(--edge);
-  border-radius: 1.35rem 1.35rem 1.05rem 1.05rem;
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 252, 246, 0.72);
   backdrop-filter: blur(var(--blur)) saturate(1.15);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(1.15);
@@ -324,14 +341,32 @@ button:disabled { cursor: progress; opacity: 0.7; }
   font-size: 0.75rem;
 }
 
-.value span, .swatch span { mix-blend-mode: multiply; }
+.value span { mix-blend-mode: multiply; }
+.swatch span { mix-blend-mode: normal; color: inherit; }
 
 .value-1 { background: #f4efe4; border: 1px solid var(--line); }
-.value-2 { background: #b7aa98; }
+.value-2 { background: #b7aa98; color: #1c1914; }
+.value-2 span { mix-blend-mode: normal; }
 .value-3 { background: #2a2723; color: #f4efe4; }
 .value-3 span { mix-blend-mode: normal; }
 
-.swatch { color: #1c1914; border: 1px solid rgba(28, 25, 20, 0.15); }
+.swatch {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  border: 1px solid rgba(28, 25, 20, 0.28);
+}
+.swatch .value-name { font-size: 0.95rem; letter-spacing: 0; text-transform: none; }
+
+.ink-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+.ink-row button {
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  padding: 0.35rem 0.7rem;
+}
+.ink-row button.is-on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
 .motif {
   margin: 0.9rem 0 0.3rem;
@@ -390,7 +425,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding: 0.7rem 0.7rem 0.75rem;
   background: var(--vellum);
   border: 1px solid var(--edge);
-  border-radius: 1.35rem;
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 252, 246, 0.7);
   backdrop-filter: blur(var(--blur)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2);
@@ -419,6 +453,8 @@ button:disabled { cursor: progress; opacity: 0.7; }
   gap: 0.45rem;
   margin-bottom: 0.45rem;
 }
+
+.explorer-nav .text-button { flex: 0 0 auto; }
 
 .back-button {
   width: 2.25rem;
@@ -530,7 +566,7 @@ button:disabled { cursor: progress; opacity: 0.7; }
 
 .preview.is-focused {
   border-color: var(--viridian);
-  background: color-mix(in srgb, #fffaf3 74%, transparent);
+  background-color: color-mix(in srgb, #fffaf3 92%, transparent);
 }
 
 .preview-hit {
@@ -579,7 +615,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding: 0.4rem;
   background: var(--vellum-strong);
   border: 1px solid var(--edge);
-  border-radius: 1.1rem;
   box-shadow: var(--shadow);
   backdrop-filter: blur(var(--blur)) saturate(1.15);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(1.15);
@@ -599,6 +634,8 @@ button:disabled { cursor: progress; opacity: 0.7; }
   padding: 0.3rem;
 }
 
+.suggest-row.is-active { outline: 2px solid var(--viridian); outline-offset: -2px; }
+.suggest-row > span:only-child { grid-column: 1 / -1; }
 .suggest-row strong, .visit-list strong { display: block; font-family: var(--display); font-weight: 560; }
 .suggest-row small, .visit-list small { color: var(--muted); font-size: 0.78rem; }
 .suggest-row .study-art { height: 2.6rem; }
@@ -670,6 +707,12 @@ button:disabled { cursor: progress; opacity: 0.7; }
 }
 
 @media (min-width: 960px) {
+  :root {
+    --vellum: color-mix(in srgb, var(--sheet) 88%, transparent);
+    --vellum-strong: color-mix(in srgb, var(--sheet) 92%, transparent);
+    --card: color-mix(in srgb, #fffaf3 90%, transparent);
+  }
+
   .bar {
     left: 1rem;
     top: 1rem;
@@ -692,7 +735,6 @@ button:disabled { cursor: progress; opacity: 0.7; }
     left: auto;
     width: min(26rem, 34vw);
     max-height: none;
-    border-radius: 1.25rem;
   }
 
   .hint, .toast {

@@ -16,8 +16,16 @@ async function readError(response: Response): Promise<string> {
   return payload?.error ?? 'request_failed'
 }
 
-export async function searchPlaces(query: string): Promise<Location[]> {
-  const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+export async function searchPlaces(
+  query: string,
+  near?: { latitude: number; longitude: number },
+): Promise<Location[]> {
+  const params = new URLSearchParams({ q: query })
+  if (near) {
+    params.set('latitude', String(near.latitude))
+    params.set('longitude', String(near.longitude))
+  }
+  const response = await fetch(`/api/search?${params}`)
   if (!response.ok) throw new Error(await readError(response))
   const parsed = searchResultSchema.safeParse(await response.json())
   if (!parsed.success) throw new Error('request_failed')

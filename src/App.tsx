@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import {
   errorCopy,
   loadNearby,
@@ -9,7 +9,7 @@ import {
   searchPlaces,
   writeCachedCard,
 } from './api.ts'
-import { spots, type Spot } from './data/spots.ts'
+import type { Spot } from './data/spots.ts'
 import { Explorer, PlacePreview } from './explore/Explorer.tsx'
 import { forgetVisit, isStudied, noteVisitWeather, readProfile, readVisits, rememberVisit, type GoogleProfile, type Visit } from './library.ts'
 import { HideMark, LibraryMark, LocateMark, PlacesMark } from './icons/glyphs.tsx'
@@ -30,14 +30,12 @@ import {
   distanceChoices,
   distanceMeters,
   formatDistance,
-  portraitFor,
   rankStudies,
   reachLabel,
   type DistanceId,
   type FeelWord,
   type InterestId,
   type Study,
-  type StudyKind,
 } from '../shared/studies.ts'
 
 const INTERESTS_KEY = 'trail-sketch.interests'
@@ -82,30 +80,6 @@ function readInterests(): InterestId[] {
   }
 }
 
-function kindFromHint(hint: string): StudyKind {
-  const text = hint.toLowerCase()
-  if (/pond|water|skyline|river|beach|shore|lake/.test(text)) return 'water'
-  if (/terrace|arcade|observatory|bridge|street|arch/.test(text)) return 'architecture'
-  if (/hill|ridge|peak|cliff/.test(text)) return 'hill'
-  if (/view|overlook|light|sky/.test(text)) return 'viewpoint'
-  return 'park'
-}
-
-const travelStudies: Study[] = spots.map((spot) => {
-  const kind = kindFromHint(spot.hint)
-  const portrait = portraitFor(kind)
-  return {
-    id: spot.id,
-    name: spot.name,
-    longitude: spot.longitude,
-    latitude: spot.latitude,
-    distanceMeters: 0,
-    kind,
-    feel: portrait.feel,
-    line: spot.hint,
-  }
-})
-
 function samePlace(study: Study, location: Location): boolean {
   return Math.abs(study.longitude - location.longitude) < 0.0001 && Math.abs(study.latitude - location.latitude) < 0.0001
 }
@@ -130,6 +104,7 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Location[]>([])
+  const [suggestIndex, setSuggestIndex] = useState(0)
   const [busy, setBusy] = useState<'card' | 'voice' | 'search' | null>(null)
   const [saved] = useState<FieldCard | null>(() => readCachedCard())
   const [interests, setInterests] = useState<InterestId[]>(() => readInterests())
@@ -147,6 +122,7 @@ export default function App() {
   const [profile, setProfile] = useState<GoogleProfile | null>(() => readProfile())
   const [visits, setVisits] = useState<Visit[]>(() => readVisits(readProfile()?.sub ?? null))
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [mediumOpen, setMediumOpen] = useState(false)
   const [places, setPlaces] = useState<'open' | 'map' | 'hidden'>('open')
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
@@ -181,11 +157,7 @@ export default function App() {
       })
   }, [area, distance])
 
-  const pool = useMemo(() => {
-    if (studies.length > 0) return studies
-    if (area) return []
-    return travelStudies
-  }, [studies, area])
+  const pool = useMemo(() => studies, [studies])
 
   const ranked = useMemo(
     () => rankStudies(pool, { feel, description: prompt, interests }),
@@ -208,7 +180,7 @@ export default function App() {
     return null
   }, [selected, focused, area, touched])
 
-  const mapSpots = (area ? studies : travelStudies).map((study) =>
+  const mapSpots = studies.map((study) =>
     toSpot(study, isStudied(visits, study.latitude, study.longitude)),
   )
 
@@ -258,8 +230,8 @@ export default function App() {
         setHere({ latitude: position.coords.latitude, longitude: position.coords.longitude })
         onFix(position.coords.latitude, position.coords.longitude)
       },
-      () => setNotice('Location stayed off. Search a place or pick a trip.'),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+      () => setNotice('Location stayed off. Search a place, or tap the map.'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 },
     )
   }, [])
 
@@ -278,8 +250,8 @@ export default function App() {
         setHere({ latitude: position.coords.latitude, longitude: position.coords.longitude })
         acceptFix(position.coords.latitude, position.coords.longitude)
       },
-      () => setNotice('Location stayed off. Search a place or pick a trip.'),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+      () => setNotice('Location stayed off. Search a place, or tap the map.'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 },
     )
   }, [interests.length, area, acceptFix])
 
@@ -299,7 +271,8 @@ export default function App() {
       return
     }
     searchTimer.current = window.setTimeout(() => {
-      void searchPlaces(trimmed)
+      const near = area ?? here
+      void searchPlaces(trimmed, near ?? undefined)
         .then((found) => {
           const first = found[0]
           if (area && first) {
@@ -319,14 +292,15 @@ export default function App() {
               return
             }
           }
-          setResults(found.slice(0, 3))
+          setResults(found.slice(0, 5))
+          setSuggestIndex(0)
         })
         .catch((error: unknown) => {
           const code = error instanceof Error ? error.message : 'request_failed'
           setNotice(errorCopy[code] ?? errorCopy.request_failed)
           setResults([])
         })
-    }, 400)
+    }, 280)
   }
 
   function onSearch(event: FormEvent) {
@@ -438,6 +412,7 @@ export default function App() {
 
   function changeMedium(next: Medium) {
     setMedium(next)
+    setMediumOpen(false)
     setCard(null)
     setPlanNote(null)
     setPlanFromGemma(false)
@@ -465,49 +440,55 @@ export default function App() {
       : ranked
           .filter((study) => `${study.name} ${study.kind} ${study.feel} ${study.line}`.toLowerCase().includes(typed))
           .slice(0, 4)
+  const suggestionCount = visualMatches.length + results.length
+
+  function chooseSuggestion(index: number) {
+    const study = visualMatches[index]
+    if (study) {
+      setTouched(true)
+      setPick((current) => ({ ...current, id: study.id }))
+      setQuery('')
+      setResults([])
+      return
+    }
+    const place = results[index - visualMatches.length]
+    if (place) focusSearch(place)
+  }
+
+  function onSearchKey(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setResults([])
+      return
+    }
+    if (suggestionCount === 0) return
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setSuggestIndex((index) => (index + 1) % suggestionCount)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setSuggestIndex((index) => (index - 1 + suggestionCount) % suggestionCount)
+    } else if (event.key === 'Enter' && suggestionCount > 0) {
+      event.preventDefault()
+      chooseSuggestion(suggestIndex)
+    }
+  }
 
   return (
     <div className={showExplorer ? 'app has-explorer' : showPlacesDock ? 'app has-places-dock' : 'app'}>
       <header className="bar">
         <div className="brand">
           <p className="mark">Trail Sketch</p>
-          <p className="tag">A field study for drawing and painting</p>
-        </div>
-        <form className="search" onSubmit={onSearch}>
-          <label className="sr" htmlFor="place-search">
-            Look nearby by subject
-          </label>
-          <input
-            id="place-search"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              lookNearby(event.target.value)
-            }}
-            placeholder="Subject or mood nearby"
-            autoComplete="off"
-          />
-          <button type="submit">Look</button>
-        </form>
-        <p className="field-label" id="medium-label">
-          Select your medium
-        </p>
-        <div className="mediums" role="radiogroup" aria-labelledby="medium-label">
-          {mediums.map((item) => (
-            <button
-              key={item}
-              type="button"
-              role="radio"
-              aria-checked={medium === item}
-              className={medium === item ? 'is-on' : ''}
-              onClick={() => changeMedium(item)}
-            >
-              <MediumMark medium={item} />
-              {mediumLabels[item]}
-            </button>
-          ))}
         </div>
         <div className="bar-actions">
+          <button
+            type="button"
+            className="locate"
+            aria-expanded={mediumOpen}
+            onClick={() => setMediumOpen((open) => !open)}
+          >
+            <MediumMark medium={medium} />
+            {mediumLabels[medium]}
+          </button>
           <button type="button" className="locate" onClick={locate}>
             <LocateMark />
             Near me
@@ -537,37 +518,81 @@ export default function App() {
             </button>
           ) : null}
         </div>
+        {mediumOpen ? (
+          <div className="mediums" role="radiogroup" aria-label="Select your medium">
+            {mediums.map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="radio"
+                aria-checked={medium === item}
+                className={medium === item ? 'is-on' : ''}
+                onClick={() => changeMedium(item)}
+              >
+                <MediumMark medium={item} />
+                {mediumLabels[item]}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <form className="search" onSubmit={onSearch}>
+          <label className="sr" htmlFor="place-search">
+            Search a place
+          </label>
+          <input
+            id="place-search"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={suggestionCount > 0}
+            aria-controls="place-suggestions"
+            aria-activedescendant={suggestionCount > 0 ? `place-suggestion-${suggestIndex}` : undefined}
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              lookNearby(event.target.value)
+            }}
+            onKeyDown={onSearchKey}
+            placeholder="Search a place"
+            autoComplete="off"
+          />
+          <button type="submit">Look</button>
+        </form>
       </header>
 
       {visualMatches.length > 0 || results.length > 0 ? (
-        <div className="suggest" role="listbox" aria-label="Nearby matches">
-          {visualMatches.map((study) => (
+        <div className="suggest" id="place-suggestions" role="listbox" aria-label="Place suggestions">
+          {visualMatches.map((study, index) => (
             <button
               key={study.id}
+              id={`place-suggestion-${index}`}
               type="button"
-              className="suggest-row"
-              onClick={() => {
-                setTouched(true)
-                setPick((current) => ({ ...current, id: study.id }))
-                setQuery('')
-                setResults([])
-              }}
+              role="option"
+              aria-selected={suggestIndex === index}
+              className={suggestIndex === index ? 'suggest-row is-active' : 'suggest-row'}
+              onMouseEnter={() => setSuggestIndex(index)}
+              onClick={() => chooseSuggestion(index)}
             >
               <PlacePreview kind={study.kind} name={study.name} />
               <span>
                 <strong>{study.name}</strong>
                 <small>
-                  {area ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'A trip'}
+                  {area ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'On the map'}
                 </small>
               </span>
             </button>
           ))}
-          {results.map((place) => (
+          {results.map((place, index) => {
+            const option = visualMatches.length + index
+            return (
             <button
               key={`${place.longitude}-${place.latitude}`}
+              id={`place-suggestion-${option}`}
               type="button"
-              className="suggest-row"
-              onClick={() => focusSearch(place)}
+              role="option"
+              aria-selected={suggestIndex === option}
+              className={suggestIndex === option ? 'suggest-row is-active' : 'suggest-row'}
+              onMouseEnter={() => setSuggestIndex(option)}
+              onClick={() => chooseSuggestion(option)}
             >
               <span>
                 <strong>{place.name}</strong>
@@ -578,7 +603,8 @@ export default function App() {
                 </small>
               </span>
             </button>
-          ))}
+            )
+          })}
         </div>
       ) : null}
 
