@@ -5,10 +5,9 @@ import {
   distanceChoices,
   feelLabels,
   feelWords,
-  formatDistance,
   interestIds,
   interestLabels,
-  reachLabel,
+  reachLine,
   type DistanceId,
   type FeelWord,
   type InterestId,
@@ -294,7 +293,7 @@ export function Explorer({
                 <p className="eyebrow">{feelLabels[study.feel]}</p>
                 <h3>{study.name}</h3>
                 <p>
-                  {hasArea ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'Near you'}
+                  {hasArea ? reachLine(study.distanceMeters) : 'Near you'}
                   {best ? ` · ${promptActive ? 'Closest to that' : 'Fits today’s study'}` : ''}
                 </p>
                 <p className="preview-action">{focused ? 'Study this place' : 'Select'}</p>

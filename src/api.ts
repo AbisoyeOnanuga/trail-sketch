@@ -45,11 +45,12 @@ export async function loadNearby(latitude: number, longitude: number, radius: nu
   return parsed.data.studies
 }
 
-export async function loadPlace(latitude: number, longitude: number): Promise<PlaceDetails> {
+export async function loadPlace(latitude: number, longitude: number, needName = true): Promise<PlaceDetails> {
   const params = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
   })
+  if (!needName) params.set('named', '1')
   const response = await fetch(`/api/place?${params}`)
   if (!response.ok) throw new Error(await readError(response))
   const parsed = placeSchema.safeParse(await response.json())

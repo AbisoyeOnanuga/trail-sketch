@@ -36,6 +36,28 @@ function oneLine(value: string): string {
 }
 
 export async function reverseName(latitude: number, longitude: number): Promise<string> {
+  try {
+    const url = new URL('https://photon.komoot.io/reverse')
+    url.searchParams.set('lat', String(latitude))
+    url.searchParams.set('lon', String(longitude))
+    url.searchParams.set('limit', '1')
+    url.searchParams.set('lang', 'en')
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(2500),
+    })
+    if (response.ok) {
+      const data = (await response.json()) as {
+        features?: Array<{ properties?: { name?: string; street?: string; district?: string; city?: string } }>
+      }
+      const props = data.features?.[0]?.properties
+      const raw = oneLine(props?.name || props?.street || props?.district || props?.city || '')
+      if (raw) return raw
+    }
+  } catch {
+    // Nominatim stays the spare lookup; its one-per-second queue is shared by every visitor.
+  }
+
   const data = (await nominatim('/reverse', {
     format: 'jsonv2',
     lat: String(latitude),
@@ -127,12 +149,29 @@ const weatherWords: Record<number, string> = {
   95: 'a thunderstorm',
 }
 
+const weatherCache = new Map<string, { at: number; line: string }>()
+
 export async function weatherLine(latitude: number, longitude: number): Promise<string> {
+  const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}`
+  const hit = weatherCache.get(key)
+  if (hit && Date.now() - hit.at < 15 * 60_000) return hit.line
+  const line = await readWeather(latitude, longitude)
+  if (line !== 'Weather is unread from here') {
+    if (weatherCache.size > 200) {
+      const oldest = weatherCache.keys().next().value
+      if (oldest) weatherCache.delete(oldest)
+    }
+    weatherCache.set(key, { at: Date.now(), line })
+  }
+  return line
+}
+
+async function readWeather(latitude: number, longitude: number): Promise<string> {
   const url = new URL('https://api.open-meteo.com/v1/forecast')
   url.searchParams.set('latitude', String(latitude))
   url.searchParams.set('longitude', String(longitude))
   url.searchParams.set('current', 'temperature_2m,cloud_cover,wind_speed_10m,weather_code')
-  const response = await fetch(url, { signal: AbortSignal.timeout(8000) })
+  const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
   if (!response.ok) return 'Weather is unread from here'
   const data = (await response.json()) as {
     current?: {

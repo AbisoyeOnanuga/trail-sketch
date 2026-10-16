@@ -29,9 +29,9 @@ import {
   CASUAL_REACH_METERS,
   distanceChoices,
   distanceMeters,
-  formatDistance,
   rankStudies,
   reachLabel,
+  reachLine,
   type DistanceId,
   type FeelWord,
   type InterestId,
@@ -195,7 +195,7 @@ export default function App() {
     setResults([])
     setWeather('')
     try {
-      const place = await loadPlace(location.latitude, location.longitude)
+      const place = await loadPlace(location.latitude, location.longitude, location.name === 'This spot')
       if (chooseId.current !== id) return
       setSelected({
         longitude: location.longitude,
@@ -576,7 +576,7 @@ export default function App() {
               <span>
                 <strong>{study.name}</strong>
                 <small>
-                  {area ? `${reachLabel(study.distanceMeters)} · ${formatDistance(study.distanceMeters)}` : 'On the map'}
+                  {area ? reachLine(study.distanceMeters) : 'On the map'}
                 </small>
               </span>
             </button>

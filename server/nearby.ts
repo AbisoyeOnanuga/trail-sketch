@@ -66,50 +66,101 @@ function point(element: OverpassElement): { latitude: number; longitude: number 
 }
 
 async function overpass(query: string): Promise<OverpassElement[]> {
-  for (const endpoint of ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-          'User-Agent': USER_AGENT,
-        },
-        body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(12_000),
-      })
-      if (response.ok) {
-        const payload = (await response.json()) as { elements?: OverpassElement[] }
-        return Array.isArray(payload.elements) ? payload.elements : []
-      }
-      if (response.status < 500 && response.status !== 429) continue
-    } catch {
-      // The next public server gets one try. A wide search must not stall the list.
-    }
+  const attempts = ENDPOINTS.map(async (endpoint) => {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+        'User-Agent': USER_AGENT,
+      },
+      body: new URLSearchParams({ data: query }),
+      signal: AbortSignal.timeout(6_000),
+    })
+    if (!response.ok) throw new Error('nearby_failed')
+    const payload = (await response.json()) as { elements?: OverpassElement[] }
+    return Array.isArray(payload.elements) ? payload.elements : []
+  })
+  try {
+    return await Promise.any(attempts)
+  } catch {
+    throw new Error('nearby_failed')
   }
-  throw new Error('nearby_failed')
+}
+
+// Photon answers one request per caller at a time, so fewer, wider requests are faster than many narrow ones.
+// Lookouts get their own request because they sit farther out and the nearest-first list would crowd them out.
+const PHOTON_GROUPS = [
+  [
+    'leisure:park',
+    'leisure:garden',
+    'natural:water',
+    'natural:beach',
+    'natural:peak',
+    'amenity:place_of_worship',
+    'historic:monument',
+    'historic:building',
+    'historic:castle',
+    'place:square',
+    'man_made:tower',
+  ],
+  ['tourism:viewpoint'],
+]
+
+type PhotonFeature = {
+  geometry?: { coordinates?: number[] }
+  properties?: { name?: string; osm_key?: string; osm_value?: string }
+}
+
+async function photonGroup(latitude: number, longitude: number, radius: number, tags: string[]): Promise<OverpassElement[]> {
+  const url = new URL('https://photon.komoot.io/reverse')
+  url.searchParams.set('lat', String(latitude))
+  url.searchParams.set('lon', String(longitude))
+  url.searchParams.set('radius', String(Math.max(0.4, radius / 1000)))
+  url.searchParams.set('limit', tags.length > 1 ? '50' : '8')
+  url.searchParams.set('lang', 'en')
+  for (const tag of tags) url.searchParams.append('osm_tag', tag)
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(3_000),
+  })
+  if (!response.ok) throw new Error('nearby_failed')
+  const data = (await response.json()) as { features?: PhotonFeature[] }
+  return (data.features ?? []).map((feature) => {
+    const [lon, lat] = feature.geometry?.coordinates ?? []
+    const props = feature.properties ?? {}
+    const tags: Tags = { name: props.name ?? '' }
+    if (props.osm_key) tags[props.osm_key] = props.osm_value ?? 'yes'
+    return { lat, lon, tags }
+  })
+}
+
+async function photonNearby(latitude: number, longitude: number, radius: number): Promise<OverpassElement[]> {
+  const settled = await Promise.allSettled(PHOTON_GROUPS.map((tags) => photonGroup(latitude, longitude, radius, tags)))
+  const elements = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
+  if (elements.length === 0 && settled.every((result) => result.status === 'rejected')) throw new Error('nearby_failed')
+  return elements
+}
+
+function overpassQuery(latitude: number, longitude: number, radius: number): string {
+  const around = `${Math.round(Math.min(radius, 4000))},${latitude},${longitude}`
+  return `[out:json][timeout:6];(
+node(around:${around})["name"]["tourism"="viewpoint"];
+node(around:${around})["name"]["historic"="monument"];
+node(around:${around})["name"]["amenity"="place_of_worship"];
+node(around:${around})["name"]["place"="square"];
+way(around:${around})["name"]["leisure"="park"];
+way(around:${around})["name"]["natural"="water"];
+);out center 36;`
 }
 
 export async function nearbyStudies(latitude: number, longitude: number, radius: number): Promise<Study[]> {
   const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}:${radius}`
   const hit = cache.get(key)
-  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.studies
+  if (hit && Date.now() - hit.at < 30 * 60_000) return hit.studies
 
-  const around = `${Math.round(radius)},${latitude},${longitude}`
-  const nearWays = `${Math.round(Math.min(radius, 4500))},${latitude},${longitude}`
-  const query = `[out:json][timeout:12];(
-node(around:${around})["name"]["tourism"="viewpoint"];
-node(around:${around})["name"]["historic"="monument"];
-node(around:${around})["name"]["amenity"="place_of_worship"];
-node(around:${around})["name"]["man_made"="tower"];
-node(around:${around})["name"]["place"="square"];
-way(around:${nearWays})["name"]["leisure"="park"];
-way(around:${nearWays})["name"]["leisure"="garden"];
-way(around:${nearWays})["name"]["natural"="water"];
-way(around:${nearWays})["name"]["natural"="beach"];
-);out center 36;`
-
-  const elements = await overpass(query)
+  let elements = await photonNearby(latitude, longitude, radius).catch(() => [] as OverpassElement[])
+  if (elements.length === 0) elements = await overpass(overpassQuery(latitude, longitude, radius))
   const studies: Study[] = []
   const seen = new Set<string>()
   for (const element of elements) {
@@ -119,7 +170,7 @@ way(around:${nearWays})["name"]["natural"="beach"];
     if (!at) continue
     const kind = kindOf(tags)
     const name = placeName(tags, kind)
-    if (/edge walk|via ferrata|bungee|climb the/i.test(name)) continue
+    if (/edge walk|via ferrata|bungee|climb the|splash pad|rink|pool|public health/i.test(name)) continue
     const stamp = `${name.toLowerCase()}:${kind}`
     if (seen.has(stamp)) continue
     seen.add(stamp)

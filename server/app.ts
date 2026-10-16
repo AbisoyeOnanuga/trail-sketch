@@ -105,8 +105,9 @@ export function createApp(): Hono {
     const key = `place:${clientKey(c.req.header('x-forwarded-for'))}`
     if (!allowRequest(key, 30, 60_000)) return c.json({ error: 'rate_limited' }, 429)
     try {
+      const named = c.req.query('named') === '1'
       const [name, sky] = await Promise.all([
-        reverseName(latitude, longitude),
+        named ? Promise.resolve('This spot') : reverseName(latitude, longitude),
         weatherLine(latitude, longitude).catch(() => 'Weather is unread from here'),
       ])
       return c.json({ name, weatherLine: sky, latitude, longitude })
@@ -151,7 +152,14 @@ export function createApp(): Hono {
   })
 
   if (process.env.NODE_ENV === 'production' || process.env.SERVE_STATIC === '1') {
+    app.use('*', async (c, next) => {
+      await next()
+      if (!c.res.ok) return
+      if (c.req.path.startsWith('/assets/')) c.header('Cache-Control', 'public, max-age=31536000, immutable')
+      else if (c.res.headers.get('Content-Type')?.includes('text/html')) c.header('Cache-Control', 'no-cache')
+    })
     app.use('*', serveStatic({ root: './dist' }))
+    app.get('/assets/*', (c) => c.notFound())
     app.get('*', serveStatic({ path: './dist/index.html' }))
   }
 

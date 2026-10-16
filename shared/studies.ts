@@ -147,6 +147,12 @@ export function reachLabel(meters: number): string {
   return 'Farther out'
 }
 
+export function reachLine(meters: number): string {
+  const reach = reachLabel(meters)
+  const distance = formatDistance(meters)
+  return reach === distance ? reach : `${reach} · ${distance}`
+}
+
 export function formatDistance(meters: number): string {
   if (!Number.isFinite(meters) || meters < 40) return 'Here'
   if (meters < 950) return `${Math.max(10, Math.round(meters / 10) * 10)} m`
