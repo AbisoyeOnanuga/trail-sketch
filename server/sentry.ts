@@ -1,4 +1,8 @@
+import { createRequire } from 'node:module'
+import type { Integration } from '@sentry/core'
 import * as Sentry from '@sentry/node'
+
+const require = createRequire(import.meta.url)
 
 let enabled = false
 
@@ -44,11 +48,34 @@ export function initSentry(): void {
     console.warn('sentry skipped: SENTRY_DSN is not a usable https DSN')
     return
   }
+  const integrations: Integration[] = []
+  try {
+    const profiling = require('@sentry/profiling-node') as { nodeProfilingIntegration: () => Integration }
+    integrations.push(profiling.nodeProfilingIntegration())
+  } catch {
+    console.warn('sentry profiling skipped')
+  }
+  const traceRate = process.env.NODE_ENV === 'production' ? 0.1 : 1
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
-    sendDefaultPii: false,
-    tracesSampleRate: 0,
+    integrations,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      stackFrameVariables: false,
+    },
+    tracesSampler(context) {
+      const name = `${context.name ?? ''} ${context.attributes?.['http.target'] ?? ''}`
+      if (name.includes('/api/health')) return 0
+      return traceRate
+    },
+    profileLifecycle: 'trace',
+    profileSessionSampleRate: traceRate,
+    traceLifecycle: 'static',
     beforeSend(event) {
       const request = event.request
       if (request) {
@@ -66,6 +93,12 @@ export function initSentry(): void {
           if (typeof value === 'string') crumb.data[key] = redact(value)
         }
       }
+      return event
+    },
+    beforeSendTransaction(event) {
+      const request = event.request
+      if (request?.url) request.url = redact(request.url)
+      if (typeof request?.query_string === 'string') request.query_string = redact(request.query_string)
       return event
     },
   })

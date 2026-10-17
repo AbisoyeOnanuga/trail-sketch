@@ -145,12 +145,29 @@ way(around:${around})["name"]["natural"="water"];
 );out center 36;`
 }
 
-// Keeps the nearest of a kind, then picks the rest evenly out to the far edge of the radius.
-function spreadAcross(sorted: Study[]): Study[] {
+// Six places per kind, twenty in total. A ride or a drive still spends that same budget,
+// with more of the slots kept close and the far edge kept so the longer reach stays visible.
+function spreadAcross(sorted: Study[], radius: number): Study[] {
   if (sorted.length <= PER_KIND) return sorted
-  const picks = new Set<number>()
-  for (let step = 0; step < PER_KIND; step += 1) picks.add(Math.round((step * (sorted.length - 1)) / (PER_KIND - 1)))
-  return [...picks].map((index) => sorted[index])
+  const last = sorted.length - 1
+  const wide = radius >= 20_000
+  const wanted: number[] = []
+  for (let step = 0; step < PER_KIND; step += 1) {
+    const t = step / (PER_KIND - 1)
+    wanted.push(Math.round((wide ? t * t : t) * last))
+  }
+  if (wide) wanted.push(last)
+  const picks: number[] = []
+  for (const index of wanted) {
+    if (!picks.includes(index)) picks.push(index)
+  }
+  for (let index = 0; picks.length < PER_KIND && index <= last; index += 1) {
+    if (!picks.includes(index)) picks.push(index)
+  }
+  return picks
+    .slice(0, PER_KIND)
+    .sort((a, b) => a - b)
+    .map((index) => sorted[index])
 }
 
 export async function nearbyStudies(latitude: number, longitude: number, radius: number): Promise<Study[]> {
@@ -192,7 +209,7 @@ export async function nearbyStudies(latitude: number, longitude: number, radius:
   const byKind = new Map<StudyKind, Study[]>()
   for (const study of studies) byKind.set(study.kind, [...(byKind.get(study.kind) ?? []), study])
   const balanced = [...byKind.values()]
-    .flatMap(spreadAcross)
+    .flatMap((group) => spreadAcross(group, radius))
     .sort((a, b) => a.distanceMeters - b.distanceMeters)
     .slice(0, MAX_STUDIES)
   if (cache.size > 40) {

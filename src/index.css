@@ -128,6 +128,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
   display: grid;
   gap: 0.45rem;
   padding: 0.6rem 0.7rem 0.6rem;
+  overflow: hidden;
 }
 
 .brand { display: flex; align-items: baseline; gap: 0.6rem; }
@@ -258,10 +259,10 @@ button:disabled { cursor: progress; opacity: 0.65; }
 .title-contours {
   position: absolute;
   z-index: 0;
-  top: -0.2rem;
-  right: -0.4rem;
-  width: 11.5rem;
-  height: 9.2rem;
+  top: 0;
+  right: 0;
+  width: 10.5rem;
+  height: 8rem;
   pointer-events: none;
 }
 
@@ -691,9 +692,9 @@ button:disabled { cursor: progress; opacity: 0.65; }
 .field-contours {
   position: absolute;
   z-index: -1;
-  right: -10%;
-  bottom: -8%;
-  width: min(19rem, 88%);
+  right: 0;
+  bottom: 0;
+  width: min(16rem, 72%);
   height: auto;
   opacity: 0.55;
   pointer-events: none;
@@ -951,6 +952,8 @@ button:disabled { cursor: progress; opacity: 0.65; }
 @media (max-width: 700px) {
   :root { font-size: 16px; }
   .bar { padding: 0.5rem 0.55rem; gap: 0.35rem; }
+  .title-contours { width: 7.5rem; height: 5.5rem; }
+  .field-contours { width: min(12rem, 68%); }
   .mark { font-size: 1.15rem; }
   .search input, .search button { padding: 0.4rem 0.6rem; font-size: 0.85rem; }
   .locate, .chips button, .mediums button, .text-button { padding: 0.32rem 0.5rem; font-size: 0.74rem; }

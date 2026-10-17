@@ -4,7 +4,7 @@ export type ContourLine = { points: Array<[number, number]>; closed: boolean }
 
 const VIEW_W = 200
 const VIEW_H = 160
-const PAD = 8
+const PAD = 22
 
 type Warp = { speed: number; amp: number; phase: number }
 
@@ -258,8 +258,26 @@ export function toCard(lines: ContourLine[], size: number): ContourLine[] {
 }
 
 export function warpPath(points: Array<[number, number]>, closed: boolean, time: number, warp: Warp): string {
-  const moved = points.map(([x, y], index) => displace(x, y, time, warp, index / points.length))
-  return curve(moved, closed)
+  const moved = points.map(([x, y], index) => displace(x, y, time, warp, index / Math.max(1, points.length)))
+  return curve(relax(moved, closed), closed)
+}
+
+function relax(points: Array<[number, number]>, closed: boolean): Array<[number, number]> {
+  const count = points.length
+  if (count < 3) return points
+  return points.map((point, index) => {
+    const prev = neighbor(points, index - 1, closed)
+    const next = neighbor(points, index + 1, closed)
+    return [point[0] * 0.5 + (prev[0] + next[0]) * 0.25, point[1] * 0.5 + (prev[1] + next[1]) * 0.25]
+  })
+}
+
+function neighbor(points: Array<[number, number]>, index: number, closed: boolean): [number, number] {
+  const count = points.length
+  if (closed) return points[(index + count) % count]
+  if (index < 0) return points[0]
+  if (index >= count) return points[count - 1]
+  return points[index]
 }
 
 function displace(x: number, y: number, time: number, warp: Warp, along: number): [number, number] {
@@ -275,15 +293,29 @@ function displace(x: number, y: number, time: number, warp: Warp, along: number)
 function curve(points: Array<[number, number]>, closed: boolean): string {
   const count = points.length
   if (count === 0) return ''
+  const at = (index: number): [number, number] => {
+    if (closed) return points[(index + count) % count]
+    if (index < 0) {
+      const a = points[0]
+      const b = points[Math.min(1, count - 1)]
+      return [a[0] * 2 - b[0], a[1] * 2 - b[1]]
+    }
+    if (index >= count) {
+      const a = points[count - 1]
+      const b = points[Math.max(0, count - 2)]
+      return [a[0] * 2 - b[0], a[1] * 2 - b[1]]
+    }
+    return points[index]
+  }
   const last = closed ? count : count - 1
   const parts = [`M${n(points[0][0])} ${n(points[0][1])}`]
   for (let i = 0; i < last; i += 1) {
-    const p0 = points[(i - 1 + count) % count]
-    const p1 = points[i % count]
-    const p2 = points[(i + 1) % count]
-    const p3 = points[(i + 2) % count]
+    const p0 = at(i - 1)
+    const p1 = at(i)
+    const p2 = at(i + 1)
+    const p3 = at(i + 2)
     parts.push(
-      `C${n(p1[0] + (p2[0] - p0[0]) / 6)} ${n(p1[1] + (p2[1] - p0[1]) / 6)} ${n(p2[0] - (p3[0] - p1[0]) / 6)} ${n(p2[1] - (p3[1] - p1[1]) / 6)} ${n(p2[0])} ${n(p2[1])}`,
+      `C${n(p1[0] + (p2[0] - p0[0]) / 8)} ${n(p1[1] + (p2[1] - p0[1]) / 8)} ${n(p2[0] - (p3[0] - p1[0]) / 8)} ${n(p2[1] - (p3[1] - p1[1]) / 8)} ${n(p2[0])} ${n(p2[1])}`,
     )
   }
   if (closed) parts.push('Z')
@@ -294,7 +326,7 @@ function n(value: number): string {
   return value.toFixed(1)
 }
 
-export const titleWarp: Warp = { speed: 0.72, amp: 9.5, phase: 0.4 }
-export const fieldWarp: Warp = { speed: 0.46, amp: 6.5, phase: 2.6 }
+export const titleWarp: Warp = { speed: 0.72, amp: 7, phase: 0.4 }
+export const fieldWarp: Warp = { speed: 0.46, amp: 5, phase: 2.6 }
 export const titleSteps = [0.18, 0.4, 0.58, 0.78]
 export const fieldSteps = [0.28, 0.48, 0.66, 0.86]

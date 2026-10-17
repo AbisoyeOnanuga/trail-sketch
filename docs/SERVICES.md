@@ -48,10 +48,10 @@ The map, search, nearby places, weather, and photos all work with no keys at all
 Writes the field study: tone notes, palette, subject, a line about the light, and the script that gets read aloud.
 
 - Code: `server/gemma.ts`. Route: `POST /api/field-card`.
-- Model: `gemma-4-26b-a4b-it` by default (`GEMMA_MODEL`).
-- Endpoint: Google's OpenAI-compatible endpoint, `https://generativelanguage.googleapis.com/v1beta/openai`. `GEMMA_BASE_URL` can point somewhere else, such as a local Ollama at `http://127.0.0.1:11434/v1`. That URL must be `https`, or `http` only on localhost.
-- Key: `GEMMA_API_KEY`. If it is empty, `GEMINI_API_KEY` is used instead.
-- Behaviour: asks for JSON, at temperature 0.2, capped at 500 tokens. It waits up to 20 seconds and does not retry. The sheet shows its own notes at once, then replaces them if Gemma answers.
+- Model: `GEMMA_MODEL`. The deployed app uses Google's `gemma-4-26b-a4b-it`. A local Ollama server accepts any tag from `ollama list`.
+- Endpoint: Google's OpenAI-compatible endpoint, `https://generativelanguage.googleapis.com/v1beta/openai`, when `GEMMA_BASE_URL` is empty. Ollama is reached only by setting `GEMMA_BASE_URL` to `http://127.0.0.1:11434/v1`. The URL must be `https`, or `http` only on localhost.
+- Key: `GEMMA_API_KEY` for Google. If it is empty, `GEMINI_API_KEY` is used instead. A local Ollama server does not need a key.
+- Behaviour: asks for JSON, at temperature 0.2, capped at 500 tokens, with Google's reasoning effort set to minimal so the token budget is spent on the plan. It waits up to 20 seconds and does not retry. A reply cut off by that cap is discarded. The sheet shows its own notes at once, then replaces them if Gemma answers.
 - The same place and medium are kept in server memory for 30 minutes (up to 24 plans), so opening that study again does not call Gemma.
 - Without a key, or when Gemma fails: the app writes its own plan in the browser (`src/plan/fallback.ts`). That plan uses the type of place, the light, the time of day, the medium, and the pigments.
 
@@ -81,7 +81,7 @@ The main place service. Free, no key, run as a fair-use public service.
 - **Search as you type**: `/api/`, weighted toward where you are (`server/places.ts`). A repeated query is kept for 90 seconds.
 - **Place names** for a tapped spot: `/reverse`, with a 2.5 second timeout. A name is kept for 30 minutes.
 - **Nearby places**: `/reverse` with OpenStreetMap tags, sent as three grouped requests (`server/nearby.ts`): nature (parks, gardens, water, beaches, peaks), architecture (places of worship, monuments, historic buildings, castles, squares, towers), and viewpoints. Photon answers one request at a time per caller, so a first look takes about 3 to 5 seconds; repeat looks within 30 minutes come from the cache.
-- Photon returns the nearest results first. To fill the whole radius instead of one block, the app keeps up to 6 places of each kind, spaced out from nearest to farthest, and shows up to 20 in total. Unnamed parks and buildings are skipped. The reach buttons search 1.5 km (here), 4 km (a walk), 12 km (a hike), 20 km (a ride), and 40 km (a drive).
+- Photon returns the nearest results first, at most 40 per group. The app keeps up to 6 places of each kind and 20 in total, the same budget for every reach. Here, a walk, and a hike space those 6 from nearest to farthest. A ride and a drive keep more of the 6 close in, and still keep the farthest one so the longer reach shows. Unnamed parks and buildings are skipped. The reaches are 1.5 km (here), 4 km (a walk), 12 km (a hike), 20 km (a ride), and 40 km (a drive).
 
 ### Nominatim, by OpenStreetMap (fallback)
 
@@ -176,8 +176,8 @@ Server only. They are never sent to the browser. Real values go in `.env` locall
 | --- | --- | --- |
 | `GEMMA_API_KEY` | Plans from Gemma | none |
 | `GEMINI_API_KEY` | Used only if `GEMMA_API_KEY` is empty | none |
-| `GEMMA_MODEL` | Model name | `gemma-4-26b-a4b-it` |
-| `GEMMA_BASE_URL` | Another endpoint, such as Ollama | Google's endpoint |
+| `GEMMA_MODEL` | Model name. Google's id, or an Ollama tag when the URL is local | `gemma-4-26b-a4b-it` |
+| `GEMMA_BASE_URL` | Empty for Google. `http://127.0.0.1:11434/v1` for Ollama | Google's endpoint |
 | `ELEVENLABS_API_KEY` | Readings | none |
 | `ELEVENLABS_VOICE_ID` | Voice choice | public default voice |
 | `GOOGLE_CLIENT_ID` | Sign-in | none (sign-in hidden) |
@@ -189,7 +189,7 @@ Server only. They are never sent to the browser. Real values go in `.env` locall
 
 **Sentry** is optional and follows the same idea as price-wire: the official `@sentry/node` SDK, started only when `SENTRY_DSN` is set (`server/sentry.ts`).
 
-- Reports are errors only. Tracing, session replay, and profiling stay off, so a quiet app does not spend the quota on every map request.
+- Errors are always reported. In production, one in ten requests is traced and the profiling session follows that same rate (`@sentry/profiling-node`). Locally, traces and the profiling session are on, except `GET /api/health`, so a new DSN shows up quickly. Session replay stays off. Headers, cookies, query strings, and request bodies are not collected.
 - A missing key, a rate limit, and a short search are not reported. A failed plan, a failed reading, or a failed place lookup is.
 - Coordinates are stripped from the report before it leaves the server. `GET /api/health` returns `{ ok, gemma, voice, sentry }` and is not sent to Sentry.
 - To switch it on: in the Sentry dashboard, create a Node.js project (a separate one from price-wire), copy its DSN, and set `SENTRY_DSN` in `.env` and on Render. No auth token and no source-map upload are required. Leave the variable empty and the app behaves as before.

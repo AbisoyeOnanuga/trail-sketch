@@ -6,10 +6,9 @@ import {
 } from '../shared/contract.ts'
 import { weatherLine } from './places.ts'
 
-function gemmaEndpoint(): { url: string; key: string; model: string } | null {
-  const key = process.env.GEMMA_API_KEY?.trim()
-  if (!key) return null
-  const model = process.env.GEMMA_MODEL?.trim() || 'gemma-4-26b-a4b-it'
+const GOOGLE_MODEL = 'gemma-4-26b-a4b-it'
+
+function gemmaEndpoint(): { url: string; key: string; model: string; local: boolean } | null {
   const raw = process.env.GEMMA_BASE_URL?.trim() || 'https://generativelanguage.googleapis.com/v1beta/openai'
   let parsed: URL
   try {
@@ -20,11 +19,15 @@ function gemmaEndpoint(): { url: string; key: string; model: string } | null {
   const local = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
   const allowed = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && local)
   if (!allowed) throw new Error('gemma_base_url_rejected')
+  const key = process.env.GEMMA_API_KEY?.trim() || (local ? 'ollama' : '')
+  if (!key) return null
+  const model = process.env.GEMMA_MODEL?.trim() || GOOGLE_MODEL
   const path = parsed.pathname.replace(/\/$/, '')
   return {
     url: `${parsed.origin}${path}/chat/completions`,
     key,
     model,
+    local,
   }
 }
 
@@ -56,7 +59,7 @@ const cardCache = new Map<string, { at: number; card: FieldCard }>()
 const CARD_TTL = 30 * 60_000
 
 function cardKey(request: FieldCardRequest): string {
-  const model = process.env.GEMMA_MODEL?.trim() || 'gemma-4-26b-a4b-it'
+  const model = process.env.GEMMA_MODEL?.trim() || GOOGLE_MODEL
   return [
     request.latitude.toFixed(3),
     request.longitude.toFixed(3),
@@ -83,6 +86,9 @@ export async function writeFieldCard(
     temperature: 0.2,
     max_tokens: 500,
     response_format: { type: 'json_object' },
+    // Google's Gemma spends this budget on a thought channel unless asked to keep it minimal.
+    // A local Ollama server does not use this field.
+    ...(endpoint.local ? {} : { reasoning_effort: 'minimal' }),
     messages: [
       {
         role: 'system',
@@ -126,18 +132,31 @@ export async function writeFieldCard(
   }
 
   const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
+    choices?: Array<{ finish_reason?: string; message?: { content?: string } }>
   }
-  const text = payload.choices?.[0]?.message?.content ?? ''
+  const choice = payload.choices?.[0]
+  if (choice?.finish_reason === 'length') throw new Error('gemma_failed')
+  const text = (choice?.message?.content ?? '').replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim()
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const source = (fenced?.[1] ?? text).trim()
   let parsed: unknown
   try {
-    parsed = JSON.parse(fenced?.[1] ?? text)
+    parsed = JSON.parse(source)
   } catch {
-    throw new Error('card_unreadable')
+    const start = source.indexOf('{')
+    const end = source.lastIndexOf('}')
+    if (start < 0 || end <= start) throw new Error('card_unreadable')
+    try {
+      parsed = JSON.parse(source.slice(start, end + 1))
+    } catch {
+      throw new Error('card_unreadable')
+    }
   }
 
-  const record = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
+  const root = Array.isArray(parsed)
+    ? parsed.find((item) => item && typeof item === 'object' && !Array.isArray(item))
+    : parsed
+  const record = root && typeof root === 'object' && !Array.isArray(root) ? (root as Record<string, unknown>) : {}
   const card = fieldCardSchema.safeParse({
     placeName: request.name,
     longitude: request.longitude,
