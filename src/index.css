@@ -16,23 +16,22 @@
   --shadow: 3px 3px 0 color-mix(in srgb, var(--cobalt) 22%, transparent);
   --shadow-lift: 4px 4px 0 color-mix(in srgb, var(--cobalt) 30%, transparent);
   --blur: 10px;
-  --display: 'Fraunces', 'Iowan Old Style', Palatino, serif;
-  --body: 'Literata', 'Iowan Old Style', Palatino, serif;
+  --display: 'Newsreader', 'Iowan Old Style', Palatino, serif;
+  --body: 'Source Serif 4', 'Iowan Old Style', Palatino, serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --ease: 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
   --radius: 3px;
 
-  --contour: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 110' fill='none' stroke='%232c4a68' stroke-opacity='0.22' stroke-width='1'%3E%3Cpath d='M150 8c-18 2-30 14-48 12S72 2 58 10s-8 26 6 34 34 4 46 16 4 30 18 36 22-4 22-4'/%3E%3Cpath d='M150 24c-14 0-22 10-36 8s-26-14-38-8-4 18 8 24 28 4 36 14 2 24 14 28 16-2 16-2'/%3E%3Cpath d='M150 40c-10 0-16 6-26 4s-20-10-28-4-2 12 8 16 20 4 26 10 2 16 10 18 10 0 10 0'/%3E%3Cpath d='M150 56c-6 0-10 4-16 2s-12-6-16-2 0 8 6 10 12 2 16 6 2 8 6 10 4 0 4 0'/%3E%3C/svg%3E");
-  --fold: linear-gradient(225deg, color-mix(in srgb, var(--paper) 40%, #d9dcd8) 0 10px, var(--rule) 10px 11px, transparent 11px);
   --grid:
     linear-gradient(to right, color-mix(in srgb, var(--cobalt) 7%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--cobalt) 7%, transparent) 1px, transparent 1px),
     linear-gradient(to right, color-mix(in srgb, var(--cobalt) 13%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--cobalt) 13%, transparent) 1px, transparent 1px);
-  --paper-layers: var(--fold), var(--contour), var(--grid);
-  --paper-sizes: 16px 16px, 150px 110px, 18px 18px, 18px 18px, 90px 90px, 90px 90px;
-  --paper-positions: top right, top right, 0 0, 0 0, 0 0, 0 0;
-  --paper-repeat: no-repeat, no-repeat, repeat, repeat, repeat, repeat;
+  --tooth: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 0 0.26 0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --paper-layers: var(--tooth);
+  --paper-sizes: 180px 180px;
+  --paper-positions: 0 0;
+  --paper-repeat: repeat;
   --line-thumb: linear-gradient(var(--cobalt), var(--cobalt));
   --line-track: linear-gradient(var(--rule-soft), var(--rule-soft));
 
@@ -103,9 +102,9 @@ button:disabled { cursor: progress; opacity: 0.65; }
   box-shadow: var(--shadow);
 }
 
-/* Panels: grid paper, one folded corner, a contour mark, and a hard offset shadow. */
+/* Panels: warm paper with a canvas tooth, and a hard offset shadow. */
 .bar, .explorer, .gate, .sheet, .suggest, .places-dock {
-  background-color: var(--vellum);
+  background-color: #f6f3eb;
   background-image: var(--paper-layers);
   background-size: var(--paper-sizes);
   background-position: var(--paper-positions);
@@ -281,6 +280,18 @@ button:disabled { cursor: progress; opacity: 0.65; }
   font-size: 0.9rem;
 }
 .plan-note.is-live { border-left-color: var(--viridian); background: color-mix(in srgb, var(--viridian) 7%, transparent); }
+.ai-mark {
+  display: inline-block;
+  padding: 0 0.32rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--cobalt);
+  vertical-align: 0.08rem;
+}
 .ui-name {
   display: inline-block;
   margin: 0 0.1rem;
@@ -652,6 +663,13 @@ button:disabled { cursor: progress; opacity: 0.65; }
 }
 .look-here svg { width: 1rem; height: 1rem; }
 .look-here:active { transform: translateX(-50%) translateY(1px); }
+@media (max-width: 959px) {
+  .explorer[data-snap='half'],
+  .explorer[data-snap='full'] {
+    max-height: calc(100dvh - var(--bar-h, 7rem) - 3.4rem);
+  }
+  .look-here:active { transform: translateX(-50%) translateY(1px); }
+}
 @media (hover: hover) {
   .look-here:hover { background: #fbfaf6; }
 }
@@ -680,7 +698,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
   right: 0;
   bottom: 0;
   height: 56dvh;
-  background-image: var(--fold), var(--grid);
+  background-image: var(--paper-layers);
   background-size: 16px 16px, 18px 18px, 18px 18px, 90px 90px, 90px 90px;
   background-position: top right, 0 0, 0 0, 0 0, 0 0;
   background-repeat: no-repeat, repeat, repeat, repeat, repeat;
@@ -717,10 +735,10 @@ button:disabled { cursor: progress; opacity: 0.65; }
   touch-action: none;
 }
 .sheet-handle span {
-  width: 2.6rem;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--rule);
+  width: 4.75rem;
+  height: 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--cobalt) 55%, var(--rule));
   transition: background-color var(--ease), width var(--ease);
 }
 .sheet-handle:hover span, .explorer.is-dragging .sheet-handle span { background: var(--cobalt); width: 3.2rem; }
@@ -763,7 +781,10 @@ button:disabled { cursor: progress; opacity: 0.65; }
   border: 1px dashed var(--rule);
   border-radius: var(--radius);
   background: color-mix(in srgb, #fbfaf6 55%, transparent);
+  max-height: 42%;
+  overflow: auto;
 }
+.refine-close { width: 100%; }
 
 .prompt { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
 .prompt .field-label { flex: 1 0 100%; }
@@ -778,7 +799,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
 /* Results rows */
 .rail {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 7.5rem;
   overflow-x: hidden;
   overflow-y: auto;
   margin: 0 -0.75rem 0 0;

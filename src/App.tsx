@@ -40,6 +40,7 @@ import {
   CASUAL_REACH_METERS,
   distanceChoices,
   distanceMeters,
+  bestPhrase,
   rankStudies,
   reachLabel,
   reachLine,
@@ -54,10 +55,10 @@ const INTERESTS_KEY = 'trail-sketch.interests'
 type PlanNote = { kind: 'live' | 'local'; lead: string }
 
 function fallbackLead(code: string): string {
-  if (code === 'rate_limited' || code === 'gemma_rate_limited') return 'Gemma is busy.'
+  if (code === 'rate_limited' || code === 'gemma_rate_limited') return 'AI is busy.'
   if (code === 'missing_local_model') return 'The local model needs a name on the server.'
-  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return 'Gemma is not available.'
-  return 'Gemma did not answer.'
+  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return 'AI is not available.'
+  return 'AI did not answer.'
 }
 
 function readInterests(): InterestId[] {
@@ -458,7 +459,7 @@ export default function App() {
       setCard(next)
       writeCachedCard(next)
       setPlanFromGemma(true)
-      setPlanNote({ kind: 'live', lead: 'Gemma wrote this plan.' })
+      setPlanNote({ kind: 'live', lead: 'AI' })
     } catch (error) {
       if (!stillThisPlace()) return
       const code = error instanceof Error ? error.message : 'request_failed'
@@ -516,7 +517,6 @@ export default function App() {
     void choose({ name: spot.name, longitude: spot.longitude, latitude: spot.latitude })
   }
 
-  const promptActive = feel !== null || prompt.length > 0
   const interestGate = interests.length === 0 || editing
   const showExplorer = selected === null && !libraryOpen && (places === 'open' || interestGate)
   const showPlacesDock = selected === null && !libraryOpen && !interestGate && places !== 'open'
@@ -631,7 +631,7 @@ export default function App() {
                 setCard(saved)
                 setWeather(saved.weatherLine)
                 setPlanFromGemma(saved.source === 'gemma')
-                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'Gemma wrote this plan.' } : null)
+                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'AI' } : null)
               }}
             >
               Saved study
@@ -793,7 +793,7 @@ export default function App() {
           studies={ranked}
           hoverId={hoverId}
           bestId={ranked[0]?.id ?? null}
-          promptActive={promptActive}
+          bestNote={ranked[0] ? bestPhrase(ranked[0], { feel, description: prompt, interests }) : null}
           loading={areaBusy}
           hasArea={area !== null}
           notice={notice}

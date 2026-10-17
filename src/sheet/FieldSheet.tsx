@@ -118,12 +118,11 @@ export function FieldSheet({
       </p>
       {planNote ? (
         <p className={planFromGemma ? 'plan-note is-live' : 'plan-note'} role="status">
-          {planNote.lead}
+          {planFromGemma ? <span className="ai-mark">AI</span> : planNote.lead}
           {planNote.kind === 'local' ? (
             <>
               {' '}
-              These notes use the place, the weather, and the tones. <span className="ui-name">Read aloud</span> can
-              still speak them.
+              The place and the light wrote these. <span className="ui-name">Read aloud</span> can still speak them.
             </>
           ) : null}
         </p>
@@ -131,7 +130,7 @@ export function FieldSheet({
       {notice ? <p className="notice">{notice}</p> : null}
 
       <p className="field-label">Suggested tones for your study</p>
-      <p className="hint-inline">Lightest to darkest, and what holds each tone here. Starting points; you choose what stays.</p>
+      <p className="hint-inline">Lightest to darkest. You choose what stays.</p>
       <ol className="values" aria-label="Suggested tones">
         {tones.map((note, index) => (
           <li key={index} className={`value value-${index + 1}`}>

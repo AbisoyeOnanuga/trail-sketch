@@ -127,9 +127,9 @@ function InterestGate({
   }
   return (
     <section className="gate" aria-label="What would you like to study today">
-      <p className="eyebrow">Before the walk</p>
-      <h2>What would you like to study today?</h2>
-      <p className="gate-copy">Pick what you want to study. Places near you line up from that.</p>
+      <p className="eyebrow">For drawing outside</p>
+      <h2>Find a place, then put the phone away.</h2>
+      <p className="gate-copy">Trail Sketch looks for water, trees, stone, and open light. Pick what you want in the picture. Those places lead the list.</p>
       <div className="chips" role="group" aria-label="Interests">
         {interestIds.map((id) => (
           <button
@@ -164,7 +164,7 @@ type ExplorerProps = {
   studies: Study[]
   hoverId: string | null
   bestId: string | null
-  promptActive: boolean
+  bestNote: string | null
   loading: boolean
   hasArea: boolean
   notice: string | null
@@ -199,7 +199,7 @@ export function Explorer({
   studies,
   hoverId,
   bestId,
-  promptActive,
+  bestNote,
   loading,
   hasArea,
   notice,
@@ -311,11 +311,14 @@ export function Explorer({
           aria-expanded={refine}
           onClick={() => setRefine((open) => !open)}
         >
-          Refine
+          {refine ? 'Show places' : 'Refine'}
         </button>
       </div>
       {refine ? (
         <div className="refine-panel">
+          <button type="button" className="text-button refine-close" onClick={() => setRefine(false)}>
+            Show places
+          </button>
           <div className="chips" role="group" aria-label="Feel of the study">
             {feelWords.map((word) => (
               <button
@@ -337,17 +340,20 @@ export function Explorer({
             }}
           >
             <label className="field-label" htmlFor="study-prompt">
-              What to match
+              A word to find
             </label>
             <input
               id="study-prompt"
               value={draft}
               maxLength={160}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Light, subject, or mood"
+              onChange={(event) => {
+                const next = event.target.value
+                setDraft(next)
+                onPrompt(next.trim())
+              }}
+              placeholder="trees, water, quiet"
               autoComplete="off"
             />
-            <button type="submit">Match</button>
           </form>
         </div>
       ) : null}
@@ -375,7 +381,7 @@ export function Explorer({
       {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">
           {hasArea
-            ? 'Nothing named is this close. Try a ride or a drive, or open Refine.'
+            ? 'Nothing named is this close. A hike or a drive looks farther.'
             : 'Location is off. Use Near me, or search a place. Nothing is loaded until then.'}
         </p>
       ) : null}
@@ -411,9 +417,7 @@ export function Explorer({
                       <h3>{study.name}</h3>
                       <p>
                         {hasArea ? reachLine(study.distanceMeters) : 'Near you'} · {kindLabel(study.kind)}
-                        {best ? (
-                          <span className="preview-best">{promptActive ? 'Closest to that' : 'Best today'}</span>
-                        ) : null}
+                        {best && bestNote ? <span className="preview-best">{bestNote}</span> : null}
                       </p>
                     </span>
                   </button>

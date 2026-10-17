@@ -152,13 +152,13 @@ export async function verifyGoogle(credential: string): Promise<{ sub: string; n
 }
 
 export const errorCopy: Record<string, string> = {
-  missing_gemma_key: 'Gemma is not connected on the server.',
+  missing_gemma_key: 'AI is not connected on the server.',
   missing_local_model: 'Set GEMMA_MODEL to a tag from the local model server.',
   missing_elevenlabs_key: 'Narration needs an ElevenLabs key on the server.',
-  gemma_rejected: 'Gemma refused the server key.',
+  gemma_rejected: 'AI refused the server key.',
   elevenlabs_rejected: 'ElevenLabs refused the key. Check ELEVENLABS_API_KEY.',
-  gemma_failed: 'Gemma did not answer.',
-  gemma_rate_limited: 'Gemma is busy right now.',
+  gemma_failed: 'AI did not answer.',
+  gemma_rate_limited: 'AI is busy.',
   elevenlabs_failed: 'The reading did not come back. Try again.',
   card_unreadable: 'The study came back in a shape the sheet could not use.',
   geocode_failed: 'The place name could not be looked up.',

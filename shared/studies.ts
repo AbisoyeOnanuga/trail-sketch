@@ -37,16 +37,6 @@ export const interestLabels: Record<InterestId, string> = {
   hills: 'Hills',
 }
 
-const feelKinds: Record<FeelWord, StudyKind[]> = {
-  still: ['water'],
-  bright: ['viewpoint', 'water'],
-  tangled: ['park'],
-  open: ['viewpoint', 'hill'],
-  weathered: ['architecture'],
-  quiet: ['park', 'water'],
-  monumental: ['architecture', 'hill'],
-}
-
 const interestKinds: Record<InterestId, StudyKind[]> = {
   water: ['water'],
   trees: ['park'],
@@ -54,43 +44,6 @@ const interestKinds: Record<InterestId, StudyKind[]> = {
   sky: ['viewpoint'],
   streets: ['architecture'],
   hills: ['hill'],
-}
-
-const wordKinds: Record<string, StudyKind[]> = {
-  water: ['water'],
-  lake: ['water'],
-  river: ['water'],
-  pond: ['water'],
-  shore: ['water'],
-  beach: ['water'],
-  sea: ['water'],
-  canal: ['water'],
-  tree: ['park'],
-  trees: ['park'],
-  wood: ['park'],
-  park: ['park'],
-  garden: ['park'],
-  canopy: ['park'],
-  forest: ['park'],
-  bridge: ['architecture'],
-  stone: ['architecture'],
-  ruin: ['architecture'],
-  building: ['architecture'],
-  church: ['architecture'],
-  tower: ['architecture'],
-  street: ['architecture'],
-  wall: ['architecture'],
-  arch: ['architecture'],
-  sky: ['viewpoint'],
-  view: ['viewpoint'],
-  overlook: ['viewpoint'],
-  horizon: ['viewpoint'],
-  light: ['viewpoint'],
-  hill: ['hill'],
-  ridge: ['hill'],
-  peak: ['hill'],
-  hike: ['hill'],
-  cliff: ['hill'],
 }
 
 const kindLines: Record<StudyKind, string> = {
@@ -165,33 +118,59 @@ export function formatDistance(meters: number): string {
   return `${km < 10 ? km.toFixed(1) : Math.round(km)} km`
 }
 
-export function rankStudies(
-  studies: Study[],
-  input: { feel: FeelWord | null; description: string; interests: InterestId[] },
-): Study[] {
-  const words = input.description
+export function leadInterest(study: Study, interests: InterestId[]): InterestId | null {
+  return interests.find((interest) => interestKinds[interest].includes(study.kind)) ?? null
+}
+
+export type RankInput = { feel: FeelWord | null; description: string; interests: InterestId[] }
+
+function studyWords(description: string): string[] {
+  return description
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 2)
     .slice(0, 12)
+}
 
+function studyHay(study: Study): string {
+  const labels = interestIds
+    .filter((interest) => interestKinds[interest].includes(study.kind))
+    .map((interest) => interestLabels[interest])
+  return `${study.name} ${study.kind} ${study.feel} ${study.line} ${labels.join(' ')}`.toLowerCase()
+}
+
+function studyRank(study: Study, input: RankInput): { score: number; reason: 'words' | 'feel' | 'interest' | 'near' } {
+  const hay = studyHay(study)
+  let wordHit = false
+  let score = 0
+  for (const word of studyWords(input.description)) {
+    if (hay.includes(word)) {
+      score += 8
+      wordHit = true
+    }
+  }
+  const feelHit = input.feel !== null && study.feel === input.feel
+  if (feelHit) score += 6
+  const interest = leadInterest(study, input.interests)
+  if (interest) score += 6
+  const reason = wordHit ? 'words' : feelHit ? 'feel' : interest ? 'interest' : 'near'
+  return { score, reason }
+}
+
+export function rankStudies(studies: Study[], input: RankInput): Study[] {
   return studies
-    .map((study, index) => {
-      let score = 0
-      if (input.feel && study.feel === input.feel) score += 6
-      if (input.feel && feelKinds[input.feel].includes(study.kind)) score += 4
-      for (const interest of input.interests) {
-        if (interestKinds[interest].includes(study.kind)) score += 3
-      }
-      const hay = `${study.name} ${study.kind} ${study.feel} ${study.line}`.toLowerCase()
-      for (const word of words) {
-        if (hay.includes(word)) score += 5
-        const kinds = wordKinds[word]
-        if (kinds?.includes(study.kind)) score += 3
-      }
-      score -= study.distanceMeters / 4000
-      return { study, score, index }
-    })
+    .map((study, index) => ({ study, index, ...studyRank(study, input) }))
     .sort((a, b) => b.score - a.score || a.study.distanceMeters - b.study.distanceMeters || a.index - b.index)
     .map((entry) => entry.study)
+}
+
+export function bestPhrase(study: Study, input: RankInput): string {
+  const { reason } = studyRank(study, input)
+  if (reason === 'words') return 'Matches that'
+  if (reason === 'feel' && input.feel) return feelLabels[input.feel]
+  if (reason === 'interest') {
+    const interest = leadInterest(study, input.interests)
+    if (interest) return `For ${interestLabels[interest].toLowerCase()}`
+  }
+  return 'Start here'
 }
