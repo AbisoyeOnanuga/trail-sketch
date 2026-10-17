@@ -594,7 +594,7 @@ export default function App() {
   return (
     <div ref={appRef} className={showExplorer ? 'app has-explorer' : showPlacesDock ? 'app has-places-dock' : 'app'}>
       <header className="bar" ref={barRef}>
-        <TitleContours />
+        <TitleContours latitude={area?.latitude} longitude={area?.longitude} />
         <div className="brand">
           <p className="mark">Trail Sketch</p>
         </div>
@@ -798,6 +798,8 @@ export default function App() {
           onHover={setHoverId}
           onOpen={acceptStudy}
           onUseMap={() => setPlaces('map')}
+          latitude={area?.latitude ?? null}
+          longitude={area?.longitude ?? null}
           listReveal={listReveal}
         />
       ) : null}

@@ -98,6 +98,7 @@ Used for nearby places only if Photon returns nothing. Two public servers race e
 - Reads current temperature, cloud cover, wind, and the weather code, and turns them into one line such as "10°C, overcast, flat light, a working breeze".
 - Used when a place opens and when a plan is written.
 - Results are kept for 15 minutes, for up to 200 locations, on the server.
+- A second call, `GET /api/terrain`, reads an 8 by 8 elevation grid around the current area (`/v1/elevation`, 64 points, about 2 km across). The title card and the results card draw isolines from that grid. The grid is kept for 6 hours. Ground with less than 4 metres of relief keeps a generated sheet, because real isolines would collapse into a smudge.
 
 ## Photos
 
@@ -165,7 +166,7 @@ Nothing is stored in a database. On the phone, in `localStorage`:
 On the server, in memory only (cleared on every restart or deploy):
 
 - Nearby results for 30 minutes, weather for 15 minutes, place names for 30 minutes, search queries for 90 seconds, plans for 30 minutes, and up to 8 readings for 30 minutes. Nothing is written to disk, and one visitor's location is never sent to another.
-- Rate limits per visitor, per minute unless noted: search 40, place 30, nearby 10, sign-in 10. Plans are limited to 12 and readings to 8, per 10 minutes.
+- Rate limits per visitor, per minute unless noted: search 40, place 30, nearby 10, terrain 12, sign-in 10. Plans are limited to 12 and readings to 8, per 10 minutes.
 
 ## Settings (environment variables)
 

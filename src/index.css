@@ -254,10 +254,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.contour-nest .contour-warp path:nth-child(odd),
-.contour-nest > g:first-child path:nth-child(odd) { stroke: var(--viridian); stroke-opacity: 0.48; }
-.contour-nest .contour-fringe path,
-.contour-nest > g:last-child path { stroke-width: 1; stroke-opacity: 0.28; }
+.contour-nest path:nth-child(odd) { stroke: var(--viridian); stroke-opacity: 0.5; }
 .title-contours {
   position: absolute;
   z-index: 0;
@@ -266,21 +263,6 @@ button:disabled { cursor: progress; opacity: 0.65; }
   width: 11.5rem;
   height: 9.2rem;
   pointer-events: none;
-}
-.contour-warp {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: contour-breathe 16s ease-in-out infinite;
-  will-change: transform;
-}
-.contour-fringe { animation: contour-fringe-shift 11s ease-in-out infinite; }
-@keyframes contour-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.045, 0.96); }
-}
-@keyframes contour-fringe-shift {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(-2.5px, 1.5px); }
 }
 
 .bar-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -1075,7 +1057,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
   .preview, .locate, .secondary, .text-button, .chips button, .mediums button, .ink-row button,
   .search button, .primary, .use-map, .back-button { transition: none; transform: none !important; }
   .preview.is-ghost .study-art, .ghost-line, .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art, .here-label,
-  .drop-mark, .drop-card, .look-here, .contour-warp, .contour-fringe {
+  .drop-mark, .drop-card, .look-here {
     animation: none;
   }
 }

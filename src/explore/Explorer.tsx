@@ -172,6 +172,8 @@ type ExplorerProps = {
   onOpen: (study: Study) => void
   onUseMap: () => void
   listReveal: number
+  latitude: number | null
+  longitude: number | null
 }
 
 type Snap = 'peek' | 'half' | 'full'
@@ -205,6 +207,8 @@ export function Explorer({
   onOpen,
   onUseMap,
   listReveal,
+  latitude,
+  longitude,
 }: ExplorerProps) {
   const [draft, setDraft] = useState('')
   const [refine, setRefine] = useState(false)
@@ -281,7 +285,7 @@ export function Explorer({
       ref={sectionRef}
       style={dragHeight === null ? undefined : { height: `${dragHeight}px` }}
     >
-      <FieldContours />
+      <FieldContours latitude={latitude ?? undefined} longitude={longitude ?? undefined} />
       <button
         type="button"
         className="sheet-handle"

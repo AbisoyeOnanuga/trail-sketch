@@ -45,6 +45,25 @@ export async function loadNearby(latitude: number, longitude: number, radius: nu
   return parsed.data.studies
 }
 
+const terrainCache = new Map<string, Promise<number[] | null>>()
+
+export function loadTerrain(latitude: number, longitude: number): Promise<number[] | null> {
+  const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}`
+  const cached = terrainCache.get(key)
+  if (cached) return cached
+  const pending = fetch(`/api/terrain?latitude=${latitude}&longitude=${longitude}`)
+    .then(async (response) => {
+      if (!response.ok) return null
+      const data = (await response.json()) as { elevation?: unknown }
+      if (!Array.isArray(data.elevation) || data.elevation.length !== 64) return null
+      const elevation = data.elevation.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      return elevation.length === 64 ? elevation : null
+    })
+    .catch(() => null)
+  terrainCache.set(key, pending)
+  return pending
+}
+
 export async function loadPlace(latitude: number, longitude: number, needName = true): Promise<PlaceDetails> {
   const params = new URLSearchParams({
     latitude: String(latitude),

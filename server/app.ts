@@ -7,6 +7,7 @@ import { narrate } from './narrate.ts'
 import { googleClientId, verifyGoogleIdToken } from './google.ts'
 import { nearbyStudies } from './nearby.ts'
 import { reverseName, searchPlaces, weatherLine } from './places.ts'
+import { terrainGrid } from './terrain.ts'
 import { reportServerError, sentryEnabled } from './sentry.ts'
 
 const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
@@ -24,6 +25,7 @@ const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   google_rejected: 401,
   invalid_google_token: 400,
   nearby_failed: 502,
+  terrain_failed: 502,
   voice_rejected: 500,
   empty_script: 400,
   rate_limited: 429,
@@ -103,6 +105,22 @@ export function createApp(): Hono {
       const failed = fail('nearby', error)
       return c.json(failed.body, failed.status)
     }
+  })
+
+  app.get('/api/terrain', async (c) => {
+    const latitude = Number(c.req.query('latitude'))
+    const longitude = Number(c.req.query('longitude'))
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return c.json({ error: 'invalid_coordinates' }, 400)
+    }
+    const key = `terrain:${clientKey(c.req.header('x-forwarded-for'))}`
+    if (!allowRequest(key, 12, 60_000)) return c.json({ error: 'rate_limited' }, 429)
+    const elevation = await terrainGrid(latitude, longitude)
+    if (!elevation) {
+      const failed = fail('terrain', new Error('terrain_failed'))
+      return c.json(failed.body, failed.status)
+    }
+    return c.json({ size: 8, elevation })
   })
 
   app.get('/api/place', async (c) => {
