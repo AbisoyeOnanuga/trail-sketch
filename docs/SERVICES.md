@@ -50,7 +50,7 @@ Writes the field study: tone notes, palette, subject, a line about the light, an
 - Model: `gemma-4-26b-a4b-it` by default (`GEMMA_MODEL`).
 - Endpoint: Google's OpenAI-compatible endpoint, `https://generativelanguage.googleapis.com/v1beta/openai`. `GEMMA_BASE_URL` can point somewhere else, such as a local Ollama at `http://127.0.0.1:11434/v1`. That URL must be `https`, or `http` only on localhost.
 - Key: `GEMMA_API_KEY`. If it is empty, `GEMINI_API_KEY` is used instead.
-- Behaviour: asks for JSON, at temperature 0.2. It waits up to 45 seconds and retries once on a server error.
+- Behaviour: asks for JSON, at temperature 0.2, capped at 500 tokens. It waits up to 20 seconds and does not retry. The sheet shows its own notes at once, then replaces them if Gemma answers.
 - Without a key, or when Gemma fails: the app writes its own plan in the browser (`src/plan/fallback.ts`). That plan uses the type of place, the light, the time of day, the medium, and the pigments.
 
 ### ElevenLabs
@@ -79,7 +79,7 @@ The main place service. Free, no key, run as a fair-use public service.
 - **Search as you type**: `/api/`, weighted toward where you are (`server/places.ts`).
 - **Place names** for a tapped spot: `/reverse`, with a 2.5 second timeout.
 - **Nearby places**: `/reverse` with OpenStreetMap tags, sent as three grouped requests (`server/nearby.ts`): nature (parks, gardens, water, beaches, peaks), architecture (places of worship, monuments, historic buildings, castles, squares, towers), and viewpoints. Photon answers one request at a time per caller, so a first look takes about 3 to 5 seconds; repeat looks within 30 minutes come from the cache.
-- Photon returns the nearest results first. To fill the whole radius instead of one block, the app keeps up to 6 places of each kind, spaced out from nearest to farthest, and shows up to 20 in total. Unnamed parks and buildings are skipped.
+- Photon returns the nearest results first. To fill the whole radius instead of one block, the app keeps up to 6 places of each kind, spaced out from nearest to farthest, and shows up to 20 in total. Unnamed parks and buildings are skipped. The reach buttons search 1.5 km (here), 4 km (a walk), 12 km (a hike), 20 km (a ride), and 40 km (a drive).
 
 ### Nominatim, by OpenStreetMap (fallback)
 

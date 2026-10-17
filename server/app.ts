@@ -82,7 +82,7 @@ export function createApp(): Hono {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
       return c.json({ error: 'invalid_coordinates' }, 400)
     }
-    if (!Number.isInteger(radius) || radius < 400 || radius > 15000) {
+    if (!Number.isInteger(radius) || radius < 400 || radius > 40_000) {
       return c.json({ error: 'invalid_radius' }, 400)
     }
     const key = `nearby:${clientKey(c.req.header('x-forwarded-for'))}`

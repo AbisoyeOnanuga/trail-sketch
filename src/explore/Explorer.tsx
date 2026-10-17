@@ -170,6 +170,7 @@ type ExplorerProps = {
   onHover: (id: string | null) => void
   onOpen: (study: Study) => void
   onUseMap: () => void
+  listReveal: number
 }
 
 type Snap = 'peek' | 'half' | 'full'
@@ -202,6 +203,7 @@ export function Explorer({
   onHover,
   onOpen,
   onUseMap,
+  listReveal,
 }: ExplorerProps) {
   const [draft, setDraft] = useState('')
   const [refine, setRefine] = useState(false)
@@ -212,8 +214,18 @@ export function Explorer({
   const [rail, setRail] = useState<HTMLDivElement | null>(null)
   usePaneScroll(rail)
 
+  const seenReveal = useRef(listReveal)
+  useEffect(() => {
+    if (seenReveal.current === listReveal) return
+    seenReveal.current = listReveal
+    setSnap('half')
+    rail?.scrollTo({ top: 0 })
+  }, [listReveal, rail])
+
   useEffect(() => {
     if (!hoverId || !rail) return
+    // A pointer already on the list must not drag it. Scrolling is for a spot highlighted from the map.
+    if (rail.matches(':hover')) return
     const node = rail.querySelector<HTMLElement>(`[data-study="${CSS.escape(hoverId)}"]`)
     if (!node) return
     const top = node.offsetTop
@@ -333,8 +345,11 @@ export function Explorer({
           </form>
         </div>
       ) : null}
-      <div className="explorer-row">
-        <div className="chips" role="radiogroup" aria-label="How far">
+      <div className="explorer-row reach">
+        <p className="field-label" id="reach-label">
+          How far to look
+        </p>
+        <div className="chips" role="radiogroup" aria-labelledby="reach-label">
           {distanceChoices.map((choice) => (
             <button
               key={choice.id}
@@ -354,7 +369,7 @@ export function Explorer({
       {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">
           {hasArea
-            ? 'Nothing named is this close. Try a hike, or open Refine.'
+            ? 'Nothing named is this close. Try a ride or a drive, or open Refine.'
             : 'Location is off. Use Near me, or search a place. Nothing is loaded until then.'}
         </p>
       ) : null}

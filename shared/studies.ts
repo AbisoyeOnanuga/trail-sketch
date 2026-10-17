@@ -12,6 +12,8 @@ export const distanceChoices = [
   { id: 'here', label: 'Here', meters: 1500 },
   { id: 'walk', label: 'A walk', meters: 4000 },
   { id: 'hike', label: 'A hike', meters: 12000 },
+  { id: 'ride', label: 'A ride', meters: 20000 },
+  { id: 'drive', label: 'A drive', meters: 40000 },
 ] as const
 
 export type DistanceId = (typeof distanceChoices)[number]['id']
@@ -138,12 +140,15 @@ export function distanceMeters(fromLat: number, fromLon: number, toLat: number, 
   return 2 * earth * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
-export const CASUAL_REACH_METERS = 12_000
+export const CASUAL_REACH_METERS = 40_000
 
 export function reachLabel(meters: number): string {
   if (!Number.isFinite(meters) || meters < 40) return 'Here'
   if (meters <= 1_500) return 'Walkable'
-  if (meters <= 8_000) return 'Short ride'
+  if (meters <= 4_000) return 'A walk'
+  if (meters <= 12_000) return 'A hike'
+  if (meters <= 20_000) return 'A ride'
+  if (meters <= 40_000) return 'A drive'
   return 'Farther out'
 }
 

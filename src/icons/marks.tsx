@@ -31,6 +31,25 @@ export function ReachMark({ id }: { id: string }) {
       </svg>
     )
   }
+  if (id === 'ride') {
+    return (
+      <svg className="mark-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="4" cy="12" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <circle cx="12" cy="12" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M4 12 L7.5 7.2 H10.5 L12 12 M7.5 7.2 L6.2 4.6 H8.4" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      </svg>
+    )
+  }
+  if (id === 'drive') {
+    return (
+      <svg className="mark-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M3 11 L4.6 7.2 H11.4 L13 11" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M2.2 11 H13.8 V13.2 H2.2z" fill="currentColor" />
+        <circle cx="5" cy="13.2" r="1.15" fill="var(--paper)" />
+        <circle cx="11" cy="13.2" r="1.15" fill="var(--paper)" />
+      </svg>
+    )
+  }
   return (
     <svg className="mark-icon" viewBox="0 0 16 16" aria-hidden="true">
       <circle cx="8" cy="8" r="2" fill="currentColor" />

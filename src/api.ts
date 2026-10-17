@@ -135,7 +135,7 @@ export const errorCopy: Record<string, string> = {
   missing_google_client: 'Google sign-in needs a client id on the server.',
   google_rejected: 'Google did not confirm that sign-in.',
   invalid_google_token: 'That Google sign-in could not be read.',
-  invalid_radius: 'That distance is outside the walk and the hike.',
+  invalid_radius: 'That distance is outside the reaches this map searches.',
   rate_limited: 'Too many studies in a short while. Wait a minute.',
   request_failed: 'The trail connection dropped.',
   query_too_short: 'Type a little more of the place name.',

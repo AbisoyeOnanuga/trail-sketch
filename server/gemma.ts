@@ -63,6 +63,7 @@ export async function writeFieldCard(
   const body = JSON.stringify({
     model: endpoint.model,
     temperature: 0.2,
+    max_tokens: 500,
     response_format: { type: 'json_object' },
     messages: [
       {
@@ -95,26 +96,10 @@ export async function writeFieldCard(
         'Content-Type': 'application/json',
       },
       body,
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(20_000),
     })
   } catch {
     throw new Error('gemma_failed')
-  }
-
-  if (!response.ok && response.status >= 500) {
-    try {
-      response = await fetch(endpoint.url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${endpoint.key}`,
-          'Content-Type': 'application/json',
-        },
-        body,
-        signal: AbortSignal.timeout(45_000),
-      })
-    } catch {
-      throw new Error('gemma_failed')
-    }
   }
 
   if (response.status === 429) throw new Error('gemma_rate_limited')

@@ -22,7 +22,7 @@ type FieldSheetProps = {
   card: FieldCard | null
   weatherLine: string
   notice: string | null
-  planNote: string | null
+  planNote: { kind: 'live' | 'local'; lead: string } | null
   planFromGemma: boolean
   here: { longitude: number; latitude: number } | null
   busy: 'card' | 'voice' | null
@@ -118,7 +118,14 @@ export function FieldSheet({
       </p>
       {planNote ? (
         <p className={planFromGemma ? 'plan-note is-live' : 'plan-note'} role="status">
-          {planNote}
+          {planNote.lead}
+          {planNote.kind === 'local' ? (
+            <>
+              {' '}
+              These notes use the place, the weather, and the tones. <span className="ui-name">Read aloud</span> can
+              still speak them.
+            </>
+          ) : null}
         </p>
       ) : null}
       {notice ? <p className="notice">{notice}</p> : null}
@@ -190,10 +197,9 @@ export function FieldSheet({
       {study ? <p className="leave">{study.leaveBefore}</p> : null}
 
       {busy === 'card' ? (
-        <div className="work" role="status">
-          <span className="ink-spin" />
-          <p>Writing a plan for this place.</p>
-        </div>
+        <p className="hint-inline" role="status">
+          A closer study is on the way.
+        </p>
       ) : null}
       {busy === 'voice' ? (
         <div className="work" role="status">
@@ -205,11 +211,11 @@ export function FieldSheet({
       <div className="sheet-actions">
           <button type="button" className="primary" onClick={onWrite} disabled={busy !== null}>
             <PlanMark />
-            {busy === 'card' ? 'Writing a plan…' : 'Suggest a plan'}
+            {busy === 'card' ? 'Writing…' : 'Suggest a plan'}
           </button>
-          <button type="button" className="secondary" onClick={onListen} disabled={busy !== null}>
+          <button type="button" className="secondary" onClick={onListen} disabled={busy === 'voice'}>
             <HearMark />
-            {busy === 'voice' ? 'Playing…' : 'Hear this plan'}
+            {busy === 'voice' ? 'Reading…' : 'Read aloud'}
           </button>
       </div>
       </div>

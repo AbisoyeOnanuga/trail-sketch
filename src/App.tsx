@@ -22,6 +22,7 @@ import {
   type GoogleProfile,
   type Visit,
 } from './library.ts'
+import { TitleContours } from './art/contours.tsx'
 import { fallbackPlan } from './plan/fallback.ts'
 import { HideMark, LibraryMark, LocateMark, PlacesMark } from './icons/glyphs.tsx'
 import { MediumMark } from './icons/marks.tsx'
@@ -50,11 +51,12 @@ import {
 
 const INTERESTS_KEY = 'trail-sketch.interests'
 
-function fallbackNote(code: string): string {
-  const tail = 'These notes use the place, the weather, and the starting tones. Hear this plan can still read them.'
-  if (code === 'rate_limited' || code === 'gemma_rate_limited') return `Gemma is busy. ${tail}`
-  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return `Gemma is not available. ${tail}`
-  return `Gemma did not answer. ${tail}`
+type PlanNote = { kind: 'live' | 'local'; lead: string }
+
+function fallbackLead(code: string): string {
+  if (code === 'rate_limited' || code === 'gemma_rate_limited') return 'Gemma is busy.'
+  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return 'Gemma is not available.'
+  return 'Gemma did not answer.'
 }
 
 function readInterests(): InterestId[] {
@@ -121,7 +123,7 @@ export default function App() {
   const [prompt, setPrompt] = useState('')
   const [area, setArea] = useState<{ latitude: number; longitude: number } | null>(null)
   const [here, setHere] = useState<{ latitude: number; longitude: number } | null>(null)
-  const [planNote, setPlanNote] = useState<string | null>(null)
+  const [planNote, setPlanNote] = useState<PlanNote | null>(null)
   const [planFromGemma, setPlanFromGemma] = useState(false)
   const [studies, setStudies] = useState<Study[]>([])
   const [areaBusy, setAreaBusy] = useState(false)
@@ -130,12 +132,18 @@ export default function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [mediumOpen, setMediumOpen] = useState(false)
   const [places, setPlaces] = useState<'open' | 'map' | 'hidden'>('open')
+  const [listReveal, setListReveal] = useState(0)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const appRef = useRef<HTMLDivElement | null>(null)
   const barRef = useRef<HTMLElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
   const chooseId = useRef(0)
+  const selectedRef = useRef<Location | null>(null)
+
+  useEffect(() => {
+    selectedRef.current = selected
+  }, [selected])
 
   useEffect(() => {
     return () => {
@@ -267,6 +275,7 @@ export default function App() {
       setDropped(null)
       setPanCenter(null)
       setPlaces('open')
+      setListReveal((count) => count + 1)
       acceptFix(latitude, longitude)
     },
     [acceptFix],
@@ -341,8 +350,8 @@ export default function App() {
               setResults([])
               setNotice(
                 nearest
-                  ? `${first.name} is farther than a walk or a short ride. The nearest place to study is ${nearest.name}.`
-                  : `${first.name} is farther than a walk or a short ride.`,
+                  ? `${first.name} is farther than a drive. The nearest place to study is ${nearest.name}.`
+                  : `${first.name} is farther than a drive.`,
               )
               return
             }
@@ -372,8 +381,8 @@ export default function App() {
         const nearest = ranked[0]
         setNotice(
           nearest
-            ? `${place.name} is farther than a walk or a short ride. The nearest place to study is ${nearest.name}.`
-            : `${place.name} is farther than a walk or a short ride.`,
+            ? `${place.name} is farther than a drive. The nearest place to study is ${nearest.name}.`
+            : `${place.name} is farther than a drive.`,
         )
         return
       }
@@ -421,24 +430,41 @@ export default function App() {
     setDistance(next)
   }
 
+  const writeSeq = useRef(0)
+
   async function writeStudy() {
     if (!selected) return
     const place = selected
+    const seq = writeSeq.current + 1
+    writeSeq.current = seq
     setBusy('card')
     setNotice(null)
+    setPlanFromGemma(false)
+    setCard(fallbackPlan(place, medium, weather, selectedKind))
+    setPlanNote({ kind: 'local', lead: 'Starting notes are on the sheet.' })
+    const stillThisPlace = () => {
+      const open = selectedRef.current
+      return (
+        writeSeq.current === seq &&
+        open !== null &&
+        Math.abs(open.latitude - place.latitude) < 0.0001 &&
+        Math.abs(open.longitude - place.longitude) < 0.0001
+      )
+    }
     try {
       const next = await requestFieldCard({ ...place, medium })
+      if (!stillThisPlace()) return
       setCard(next)
       writeCachedCard(next)
       setPlanFromGemma(true)
-      setPlanNote('Gemma wrote this plan.')
+      setPlanNote({ kind: 'live', lead: 'Gemma wrote this plan.' })
     } catch (error) {
+      if (!stillThisPlace()) return
       const code = error instanceof Error ? error.message : 'request_failed'
-      setCard(fallbackPlan(place, medium, weather, selectedKind))
       setPlanFromGemma(false)
-      setPlanNote(fallbackNote(code))
+      setPlanNote({ kind: 'local', lead: fallbackLead(code) })
     } finally {
-      setBusy(null)
+      if (writeSeq.current === seq) setBusy(null)
     }
     const study = studies.find((item) => samePlace(item, place))
     setVisits(
@@ -568,6 +594,7 @@ export default function App() {
   return (
     <div ref={appRef} className={showExplorer ? 'app has-explorer' : showPlacesDock ? 'app has-places-dock' : 'app'}>
       <header className="bar" ref={barRef}>
+        <TitleContours />
         <div className="brand">
           <p className="mark">Trail Sketch</p>
         </div>
@@ -603,7 +630,7 @@ export default function App() {
                 setCard(saved)
                 setWeather(saved.weatherLine)
                 setPlanFromGemma(saved.source === 'gemma')
-                setPlanNote(saved.source === 'gemma' ? 'Gemma wrote this plan.' : null)
+                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'Gemma wrote this plan.' } : null)
               }}
             >
               Saved study
@@ -771,6 +798,7 @@ export default function App() {
           onHover={setHoverId}
           onOpen={acceptStudy}
           onUseMap={() => setPlaces('map')}
+          listReveal={listReveal}
         />
       ) : null}
       {showPlacesDock ? (
