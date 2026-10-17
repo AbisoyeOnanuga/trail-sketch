@@ -58,7 +58,7 @@ Writes the field study: tone notes, palette, subject, a line about the light, an
 Reads the plan aloud through **Hear this plan**.
 
 - Code: `server/narrate.ts`. Route: `POST /api/narrate`.
-- Model: `eleven_flash_v2_5`. Voice: `ELEVENLABS_VOICE_ID`, or a public default voice (`21m00Tcm4TlvDq8ikWAM`).
+- Model: `eleven_flash_v2_5`. Voice: `ELEVENLABS_VOICE_ID` when you want a custom voice, otherwise a public default voice (`21m00Tcm4TlvDq8ikWAM`). The API key is what turns the reading on. The voice id can stay empty.
 - Before sending, the text is rewritten so it reads well aloud. Degrees become "degrees Celsius", units are spelled out, and symbols such as `·` and `|` become pauses. The text is capped at 600 characters.
 - Waits up to 25 seconds. The audio is not cached.
 
@@ -103,7 +103,7 @@ Used for nearby places only if Photon returns nothing. Two public servers race e
 
 - Looks for photos taken near the place's coordinates, not photos matching its name, so a park named after a person shows the park rather than the person. The search radius depends on the kind of place: 120 m for buildings, 250 m for viewpoints, and 300 m for water, parks, and hills.
 - Skips portraits and photos of people (judged by the file's categories and title), as well as maps, logos, diagrams, and cropped images. Only JPEG, PNG, and WebP are used.
-- Among what is left, it prefers photos whose title mentions the place name or a view word, then the closest. Thumbnails are 480 px. Results are kept for the session.
+- A photo is kept only when its title or categories describe a view (a park, a church, a skyline, a shore). Mentioning the place name is not enough, so a band, a meal, or a streetcar photographed nearby is skipped. Events, vehicles, interiors, people, and food are skipped too, including tall portraits that are not buildings. When nothing qualifies, the card shows the painted scene instead of a wrong photo. Thumbnails are 480 px. Results are kept for the session.
 - When there is no photo, the card shows painted scene art with contour lines (`StudyArt` in `src/explore/Explorer.tsx`).
 
 ## Sign-in (built, not switched on)

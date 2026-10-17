@@ -125,7 +125,6 @@ export default function App() {
   const [planFromGemma, setPlanFromGemma] = useState(false)
   const [studies, setStudies] = useState<Study[]>([])
   const [areaBusy, setAreaBusy] = useState(false)
-  const [touched, setTouched] = useState(false)
   const [profile, setProfile] = useState<GoogleProfile | null>(() => readProfile())
   const [visits, setVisits] = useState<Visit[]>(() => readVisits(readProfile()?.sub ?? null))
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -184,22 +183,13 @@ export default function App() {
     () => rankStudies(pool, { feel, description: prompt, interests }),
     [pool, feel, prompt, interests],
   )
-  const rankingKey = `${feel ?? ''}|${prompt}|${ranked.map((study) => study.id).join(',')}`
-  const [pick, setPick] = useState<{ key: string; id: string | null }>({ key: '', id: null })
-  if (pick.key !== rankingKey) {
-    setPick({ key: rankingKey, id: ranked[0]?.id ?? null })
-  }
-  const activeId = pick.id
-
-  const focused = ranked.find((study) => study.id === activeId) ?? ranked[0] ?? null
+  // The open study flies to that place. Otherwise the camera stays on the area you are searching,
+  // including a pin you just asked to look around.
   const camera = useMemo<Location | null>(() => {
     if (selected) return selected
-    if (focused && (area || touched)) {
-      return { name: focused.name, longitude: focused.longitude, latitude: focused.latitude }
-    }
     if (area) return { name: 'Here', longitude: area.longitude, latitude: area.latitude }
     return null
-  }, [selected, focused, area, touched])
+  }, [selected, area])
 
   const mapSpots = useMemo(
     () => studies.map((study) => toSpot(study, isStudied(visits, study.latitude, study.longitude))),
@@ -354,10 +344,6 @@ export default function App() {
                   ? `${first.name} is farther than a walk or a short ride. The nearest place to study is ${nearest.name}.`
                   : `${first.name} is farther than a walk or a short ride.`,
               )
-              if (nearest) {
-                setTouched(true)
-                setPick((current) => ({ ...current, id: nearest.id }))
-              }
               return
             }
           }
@@ -389,10 +375,6 @@ export default function App() {
             ? `${place.name} is farther than a walk or a short ride. The nearest place to study is ${nearest.name}.`
             : `${place.name} is farther than a walk or a short ride.`,
         )
-        if (nearest) {
-          setTouched(true)
-          setPick((current) => ({ ...current, id: nearest.id }))
-        }
         return
       }
     }
@@ -721,6 +703,7 @@ export default function App() {
       <MapView
         spots={mapSpots}
         camera={camera}
+        frame={selected ? 'place' : 'area'}
         here={here}
         inset={mapInset}
         active={selected ? { ...selected, kind: selectedKind } : null}

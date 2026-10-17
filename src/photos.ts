@@ -11,11 +11,21 @@ const searchRadius: Record<StudyKind, number> = {
   hill: 300,
 }
 
-// Photos of people, maps, and graphics are not views of the place to paint.
+// A preview has to be a view of the place. People, food, and objects fall back to the painted scene.
 const peopleWords =
-  /\b(people|persons?|portraits?|men|women|boys|girls|children|faces?|selfies?|officers?|politicians?|mayors?|councillors?|actors?|actresses|musicians?|singers?|athletes?|players?|weddings?|crowds?|protests?|demonstrations?|births|deaths|headshots?)\b/i
-const notAView = /\(cropped\)|portrait|headshot|selfie|\bmap\b|\blogo\b|diagram|coat of arms|\bflag\b|\bseal\b|\bplan\b|\.svg$|\.tiff?$|\.pdf$/i
-const viewWords = /\b(landscapes?|parks?|gardens?|views?|skylines?|lakes?|rivers?|beach(es)?|ponds?|buildings?|churches|towers?|squares?|bridges?|exteriors?|trees?|trails?|hills?|waterfronts?)\b/i
+  /\b(people|persons?|man|men|woman|women|boys?|girls?|children|bab(?:y|ies)|faces?|selfies?|headshots?|portraits?|crowds?|weddings?|protests?|demonstrations?|politicians?|mayors?|councillors?|officers?|soldiers?|police|athletes?|players?|musicians?|singers?|actors?|actresses|tourists?|pedestrians?|couples?|famil(?:y|ies)|chefs?|waiters?|waitresses)\b/i
+const foodWords =
+  /\b(foods?|meals?|dishes?|cuisine|pizzas?|burgers?|sandwiches|coffees?|lattes?|espressos?|teas?|beers?|wines?|cocktails?|desserts?|breakfasts?|lunches|dinners?|brunches?|restaurants?|caf[eé]s?|menus?|plates?|platters?|drinks?|beverages?|snacks?|pastries|cakes?|breads?|salads?|soups?|sushi|tacos?|noodles?|hot ?dogs?|ice ?creams?)\b/i
+const notAView =
+  /\(cropped\)|portrait|headshot|selfie|\bmap\b|\blogo\b|diagram|coat of arms|\bflag\b|\bseal\b|\bplan\b|screenshot|poster|\bmenu\b|clothing|t-shirts?|\.svg$|\.tiff?$|\.pdf$/i
+const eventWords =
+  /\b(processions?|parades?|festivals?|concerts?|performances?|ceremon(?:y|ies)|mass(?:es)?|celebrations?|gatherings?|rallies|marches|funerals?|weddings?|musical groups?|bands?)\b/i
+const vehicleWords =
+  /\b(streetcars?|trams?|buses|trains?|automobiles?|vehicles?|taxis?|subways?|cars?|bicycles?|bikes?|motorcycles?)\b/i
+const indoorWords = /\b(interiors?|indoors?)\b/i
+const viewWords =
+  /\b(landscapes?|parks?|gardens?|views?|skylines?|lakes?|rivers?|beach(?:es)?|ponds?|buildings?|church(?:es)?|cathedrals?|chapels?|temples?|towers?|squares?|bridges?|exteriors?|facades?|trees?|trails?|hills?|waterfronts?|fountains?|monuments?|castles?|shores?|forests?|woodlands?|outdoors?)\b/i
+const verticalOk = /\b(buildings?|towers?|churches|cathedrals?|skyscrapers?|facades?|exteriors?|monuments?|castles?)\b/i
 
 type CommonsPage = {
   title?: string
@@ -23,6 +33,8 @@ type CommonsPage = {
   imageinfo?: Array<{
     thumburl?: string
     mime?: string
+    thumbwidth?: number
+    thumbheight?: number
     extmetadata?: { Categories?: { value?: string } }
   }>
 }
@@ -31,7 +43,11 @@ function nameWords(name: string): string[] {
   return name
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((word) => word.length > 3 && !['park', 'square', 'church', 'garden', 'saint'].includes(word))
+    .filter(
+      (word) =>
+        word.length > 3 &&
+        !['park', 'square', 'church', 'garden', 'saint', 'toronto', 'ontario', 'canada', 'city', 'north', 'south', 'east', 'west'].includes(word),
+    )
 }
 
 function choose(pages: CommonsPage[], name: string): string | null {
@@ -42,11 +58,24 @@ function choose(pages: CommonsPage[], name: string): string | null {
     const title = page.title ?? ''
     const categories = info?.extmetadata?.Categories?.value ?? ''
     if (!info?.thumburl || !/^image\/(jpeg|png|webp)$/.test(info.mime ?? '')) continue
-    if (notAView.test(title) || peopleWords.test(categories) || peopleWords.test(title)) continue
-    const haystack = `${title} ${categories}`.toLowerCase()
+    const haystack = `${title} ${categories}`
+    if (
+      notAView.test(haystack) ||
+      peopleWords.test(haystack) ||
+      foodWords.test(haystack) ||
+      eventWords.test(haystack) ||
+      vehicleWords.test(haystack) ||
+      indoorWords.test(haystack)
+    ) {
+      continue
+    }
+    const tall = (info.thumbheight ?? 0) > (info.thumbwidth ?? 0) * 1.05
+    if (tall && !verticalOk.test(haystack)) continue
+    // The file has to read as a view of a place. A name match alone still lets in bands, meals, and streetcars.
+    if (!viewWords.test(haystack)) continue
     let score = -(page.index ?? 0) * 0.2
-    if (words.some((word) => haystack.includes(word))) score += 3
-    if (viewWords.test(categories) || viewWords.test(title)) score += 1
+    if (words.some((word) => haystack.toLowerCase().includes(word))) score += 3
+    score += 1
     if (!best || score > best.score) best = { url: info.thumburl, score }
   }
   return best?.url ?? null
@@ -61,7 +90,7 @@ async function lookup(latitude: number, longitude: number, kind: StudyKind, name
   url.searchParams.set('ggsnamespace', '6')
   url.searchParams.set('ggscoord', `${latitude}|${longitude}`)
   url.searchParams.set('ggsradius', String(searchRadius[kind]))
-  url.searchParams.set('ggslimit', '12')
+  url.searchParams.set('ggslimit', '20')
   url.searchParams.set('prop', 'imageinfo')
   url.searchParams.set('iiprop', 'url|mime|extmetadata')
   url.searchParams.set('iiextmetadatafilter', 'Categories')

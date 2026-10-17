@@ -101,10 +101,14 @@ export function FieldSheet({
       </div>
       <p className="directions">
         {fromHere === null ? null : fromHere < 40 ? 'You are at this place.' : `${formatDistance(fromHere)} from you.`}
-        <a href={walkingDirections(here, location)} target="_blank" rel="noopener noreferrer">
+        <button
+          type="button"
+          className="directions-link"
+          onClick={() => window.open(walkingDirections(here, location), '_blank', 'noopener,noreferrer')}
+        >
           <DirectionsMark />
           Walking directions
-        </a>
+        </button>
         {here ? null : (
           <button type="button" className="text-button" onClick={onFindHere}>
             <LocateMark />

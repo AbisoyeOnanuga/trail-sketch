@@ -24,6 +24,8 @@ export type MapInset = { top: number; bottom: number; left: number; right: numbe
 type MapViewProps = {
   spots: Spot[]
   camera: Location | null
+  // "area" centers the search, including a pin. "place" may frame you and that place together.
+  frame: 'area' | 'place'
   here: MapPoint | null
   inset: MapInset
   active: (Location & { kind: Kind | null }) | null
@@ -154,6 +156,7 @@ function addPlaceLayers(map: Map, spots: Spot[]) {
 export function MapView({
   spots,
   camera,
+  frame,
   here,
   inset,
   active,
@@ -190,9 +193,12 @@ export function MapView({
       center: [10, 28],
       zoom: 1.5,
       attributionControl: { compact: true },
+      canvasContextAttributes: { alpha: true },
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right')
-    map.on('style.load', () => paintWatercolor(map))
+    const paint = () => paintWatercolor(map)
+    if (map.isStyleLoaded()) paint()
+    map.on('style.load', paint)
     map.on('load', () => addPlaceLayers(map, spotsRef.current))
 
     map.on('click', (event: MapMouseEvent) => {
@@ -412,6 +418,7 @@ export function MapView({
     if (!map || cameraLongitude === undefined || cameraLatitude === undefined) return
     const hasHere = hereLongitude !== undefined && hereLatitude !== undefined
     const apart =
+      frame === 'place' &&
       hasHere &&
       (Math.abs(cameraLongitude - hereLongitude) > 0.0008 || Math.abs(cameraLatitude - hereLatitude) > 0.0008)
     if (apart) {
@@ -437,7 +444,7 @@ export function MapView({
       padding: insetRef.current,
       essential: true,
     })
-  }, [cameraLongitude, cameraLatitude, hereLongitude, hereLatitude])
+  }, [cameraLongitude, cameraLatitude, hereLongitude, hereLatitude, frame])
 
   return <div ref={containerRef} className="map" />
 }
