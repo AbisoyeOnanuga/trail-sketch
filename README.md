@@ -33,6 +33,8 @@ The map and search work without keys. Copy `.env.example` to `.env` in this fold
 
 `GEMMA_BASE_URL` must be `https`, or `http` only on localhost.
 
+Every outside service, library, and stored value is listed in [docs/SERVICES.md](docs/SERVICES.md).
+
 ## Deploy
 
 `render.yaml` describes a Node web service. The build installs dev dependencies on purpose, because `NODE_ENV=production` would otherwise skip Vite and TypeScript. Set the key variables in the Render dashboard. Do not put secret values in the file.

@@ -15,6 +15,10 @@ dist
 dist-ssr
 *.local
 
+# Windows device names created by stray redirects
+NUL
+nul
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
