@@ -1,6 +1,6 @@
 # Services and resources
 
-Everything Trail Sketch depends on, in one place. Checked against the code on October 16, 2026.
+Everything Trail Sketch depends on, in one place. Checked against the code on October 17, 2026.
 
 Status words used below:
 
@@ -26,6 +26,7 @@ Status words used below:
 | Google Fonts | Fraunces, Literata, IBM Plex Mono | No | Active |
 | Google Maps (link only) | Walking directions | No | Active |
 | Google Identity Services | Sign in to keep places with an account | `GOOGLE_CLIENT_ID` | Built, not switched on |
+| Sentry | Server error reports | `SENTRY_DSN` | Optional |
 
 The map, search, nearby places, weather, and photos all work with no keys at all.
 
@@ -51,16 +52,17 @@ Writes the field study: tone notes, palette, subject, a line about the light, an
 - Endpoint: Google's OpenAI-compatible endpoint, `https://generativelanguage.googleapis.com/v1beta/openai`. `GEMMA_BASE_URL` can point somewhere else, such as a local Ollama at `http://127.0.0.1:11434/v1`. That URL must be `https`, or `http` only on localhost.
 - Key: `GEMMA_API_KEY`. If it is empty, `GEMINI_API_KEY` is used instead.
 - Behaviour: asks for JSON, at temperature 0.2, capped at 500 tokens. It waits up to 20 seconds and does not retry. The sheet shows its own notes at once, then replaces them if Gemma answers.
+- The same place and medium are kept in server memory for 30 minutes (up to 24 plans), so opening that study again does not call Gemma.
 - Without a key, or when Gemma fails: the app writes its own plan in the browser (`src/plan/fallback.ts`). That plan uses the type of place, the light, the time of day, the medium, and the pigments.
 
 ### ElevenLabs
 
-Reads the plan aloud through **Hear this plan**.
+Reads the plan aloud through **Read aloud**.
 
 - Code: `server/narrate.ts`. Route: `POST /api/narrate`.
 - Model: `eleven_flash_v2_5`. Voice: `ELEVENLABS_VOICE_ID` when you want a custom voice, otherwise a public default voice (`21m00Tcm4TlvDq8ikWAM`). The API key is what turns the reading on. The voice id can stay empty.
 - Before sending, the text is rewritten so it reads well aloud. Degrees become "degrees Celsius", units are spelled out, and symbols such as `·` and `|` become pauses. The text is capped at 600 characters.
-- Waits up to 25 seconds. The audio is not cached.
+- Waits up to 25 seconds. The same reading is kept in server memory for 30 minutes (up to 8 clips) and on the phone for the session, so playing it again does not spend another ElevenLabs credit.
 
 ## Maps and places
 
@@ -76,8 +78,8 @@ Reads the plan aloud through **Hear this plan**.
 
 The main place service. Free, no key, run as a fair-use public service.
 
-- **Search as you type**: `/api/`, weighted toward where you are (`server/places.ts`).
-- **Place names** for a tapped spot: `/reverse`, with a 2.5 second timeout.
+- **Search as you type**: `/api/`, weighted toward where you are (`server/places.ts`). A repeated query is kept for 90 seconds.
+- **Place names** for a tapped spot: `/reverse`, with a 2.5 second timeout. A name is kept for 30 minutes.
 - **Nearby places**: `/reverse` with OpenStreetMap tags, sent as three grouped requests (`server/nearby.ts`): nature (parks, gardens, water, beaches, peaks), architecture (places of worship, monuments, historic buildings, castles, squares, towers), and viewpoints. Photon answers one request at a time per caller, so a first look takes about 3 to 5 seconds; repeat looks within 30 minutes come from the cache.
 - Photon returns the nearest results first. To fill the whole radius instead of one block, the app keeps up to 6 places of each kind, spaced out from nearest to farthest, and shows up to 20 in total. Unnamed parks and buildings are skipped. The reach buttons search 1.5 km (here), 4 km (a walk), 12 km (a hike), 20 km (a ride), and 40 km (a drive).
 
@@ -124,6 +126,7 @@ Used for nearby places only if Photon returns nothing. Two public servers race e
 - **Lucide** stroke icons, ISC license (`src/icons/glyphs.tsx`).
 - **Uiverse Galaxy** spinners, MIT license, used for loaders only (credited in `src/index.css`).
 - Map pins and scene art are hand-made SVGs in `src/icons/pins.ts` and `src/explore/Explorer.tsx`.
+- The title card and the results card each draw their own nested contour hill (`src/art/contours.tsx`). The title hill breathes. The results hill stays still.
 
 ## Libraries in the app
 
@@ -134,6 +137,7 @@ Used for nearby places only if Photon returns nothing. Two public servers race e
 | Lenis | Smooth scrolling, only inside the place list, field sheet, and library sheet |
 | Zod | Checks request bodies and saved data |
 | Hono and `@hono/node-server` | API server and static files |
+| `@sentry/node` | Optional server error reports. Idle when `SENTRY_DSN` is empty |
 | tsx | Runs the TypeScript server directly |
 
 ## Build and dev tools
@@ -160,7 +164,7 @@ Nothing is stored in a database. On the phone, in `localStorage`:
 
 On the server, in memory only (cleared on every restart or deploy):
 
-- Nearby results for 30 minutes, and weather for 15 minutes, filed under the position they were asked for. Nothing is written to disk, and one visitor's location is never sent to another.
+- Nearby results for 30 minutes, weather for 15 minutes, place names for 30 minutes, search queries for 90 seconds, plans for 30 minutes, and up to 8 readings for 30 minutes. Nothing is written to disk, and one visitor's location is never sent to another.
 - Rate limits per visitor, per minute unless noted: search 40, place 30, nearby 10, sign-in 10. Plans are limited to 12 and readings to 8, per 10 minutes.
 
 ## Settings (environment variables)
@@ -176,8 +180,18 @@ Server only. They are never sent to the browser. Real values go in `.env` locall
 | `ELEVENLABS_API_KEY` | Readings | none |
 | `ELEVENLABS_VOICE_ID` | Voice choice | public default voice |
 | `GOOGLE_CLIENT_ID` | Sign-in | none (sign-in hidden) |
+| `SENTRY_DSN` | Server error reports | none (reporting off) |
 | `PORT` | Server port | `8787` |
 | `NODE_ENV=production` or `SERVE_STATIC=1` | Serve the built app from `dist/` | off in dev |
+
+## Reliability
+
+**Sentry** is optional and follows the same idea as price-wire: the official `@sentry/node` SDK, started only when `SENTRY_DSN` is set (`server/sentry.ts`).
+
+- Reports are errors only. Tracing, session replay, and profiling stay off, so a quiet app does not spend the quota on every map request.
+- A missing key, a rate limit, and a short search are not reported. A failed plan, a failed reading, or a failed place lookup is.
+- Coordinates are stripped from the report before it leaves the server. `GET /api/health` returns `{ ok, gemma, voice, sentry }` and is not sent to Sentry.
+- To switch it on: in the Sentry dashboard, create a Node.js project (a separate one from price-wire), copy its DSN, and set `SENTRY_DSN` in `.env` and on Render. No auth token and no source-map upload are required. Leave the variable empty and the app behaves as before.
 
 ## Deliberately not used
 

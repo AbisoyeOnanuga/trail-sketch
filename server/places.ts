@@ -35,7 +35,25 @@ function oneLine(value: string): string {
   return value.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120)
 }
 
+const nameCache = new Map<string, { at: number; name: string }>()
+const searchCache = new Map<string, { at: number; results: Location[] }>()
+
 export async function reverseName(latitude: number, longitude: number): Promise<string> {
+  const key = `${latitude.toFixed(3)}:${longitude.toFixed(3)}`
+  const cached = nameCache.get(key)
+  if (cached && Date.now() - cached.at < 30 * 60_000) return cached.name
+  const name = await lookupName(latitude, longitude)
+  if (name !== 'This spot') {
+    if (nameCache.size >= 80) {
+      const oldest = nameCache.keys().next().value
+      if (oldest) nameCache.delete(oldest)
+    }
+    nameCache.set(key, { at: Date.now(), name })
+  }
+  return name
+}
+
+async function lookupName(latitude: number, longitude: number): Promise<string> {
   try {
     const url = new URL('https://photon.komoot.io/reverse')
     url.searchParams.set('lat', String(latitude))
@@ -68,6 +86,25 @@ export async function reverseName(latitude: number, longitude: number): Promise<
 }
 
 export async function searchPlaces(
+  query: string,
+  near?: { latitude: number; longitude: number },
+): Promise<Location[]> {
+  const nearKey = near ? `${near.latitude.toFixed(1)}:${near.longitude.toFixed(1)}` : 'any'
+  const key = `${query.toLowerCase()}|${nearKey}`
+  const cached = searchCache.get(key)
+  if (cached && Date.now() - cached.at < 90_000) return cached.results
+  const results = await lookupPlaces(query, near)
+  if (results.length > 0) {
+    if (searchCache.size >= 40) {
+      const oldest = searchCache.keys().next().value
+      if (oldest) searchCache.delete(oldest)
+    }
+    searchCache.set(key, { at: Date.now(), results })
+  }
+  return results
+}
+
+async function lookupPlaces(
   query: string,
   near?: { latitude: number; longitude: number },
 ): Promise<Location[]> {

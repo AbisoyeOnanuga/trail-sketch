@@ -52,12 +52,30 @@ const mediumNotes: Record<FieldCardRequest['medium'], string> = {
   oil: 'Oil: opaque paint; block in the darks and middle tones, then the lights.',
 }
 
+const cardCache = new Map<string, { at: number; card: FieldCard }>()
+const CARD_TTL = 30 * 60_000
+
+function cardKey(request: FieldCardRequest): string {
+  const model = process.env.GEMMA_MODEL?.trim() || 'gemma-4-26b-a4b-it'
+  return [
+    request.latitude.toFixed(3),
+    request.longitude.toFixed(3),
+    request.medium,
+    oneLine(request.name, 80).toLowerCase(),
+    model,
+  ].join('|')
+}
+
 export async function writeFieldCard(
   request: FieldCardRequest,
   observedWeather: string,
 ): Promise<FieldCard> {
   const endpoint = gemmaEndpoint()
   if (!endpoint) throw new Error('missing_gemma_key')
+
+  const key = cardKey(request)
+  const cached = cardCache.get(key)
+  if (cached && Date.now() - cached.at < CARD_TTL) return cached.card
 
   const pigment = usesPigment(request.medium)
   const body = JSON.stringify({
@@ -140,6 +158,11 @@ export async function writeFieldCard(
   if ((pigment && card.data.palette.length !== 3) || offTheRails(card.data)) {
     throw new Error('card_unreadable')
   }
+  if (cardCache.size >= 24) {
+    const oldest = cardCache.keys().next().value
+    if (oldest) cardCache.delete(oldest)
+  }
+  cardCache.set(key, { at: Date.now(), card: card.data })
   return card.data
 }
 

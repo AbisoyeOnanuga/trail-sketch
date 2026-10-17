@@ -19,3 +19,5 @@ services:
         sync: false
       - key: ELEVENLABS_VOICE_ID
         sync: false
+      - key: SENTRY_DSN
+        sync: false

@@ -7,6 +7,7 @@ import { narrate } from './narrate.ts'
 import { googleClientId, verifyGoogleIdToken } from './google.ts'
 import { nearbyStudies } from './nearby.ts'
 import { reverseName, searchPlaces, weatherLine } from './places.ts'
+import { reportServerError, sentryEnabled } from './sentry.ts'
 
 const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   missing_gemma_key: 503,
@@ -28,7 +29,8 @@ const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   rate_limited: 429,
 }
 
-function fail(error: unknown): { status: 400 | 401 | 429 | 500 | 502 | 503; body: { error: string } } {
+function fail(route: string, error: unknown): { status: 400 | 401 | 429 | 500 | 502 | 503; body: { error: string } } {
+  reportServerError(route, error)
   const code = error instanceof Error ? error.message : 'request_failed'
   const status = errorStatus[code] ?? 500
   return { status, body: { error: code in errorStatus ? code : 'request_failed' } }
@@ -37,7 +39,14 @@ function fail(error: unknown): { status: 400 | 401 | 429 | 500 | 502 | 503; body
 export function createApp(): Hono {
   const app = new Hono()
 
-  app.get('/api/health', (c) => c.json({ ok: true }))
+  app.get('/api/health', (c) =>
+    c.json({
+      ok: true,
+      gemma: Boolean(process.env.GEMMA_API_KEY?.trim()),
+      voice: Boolean(process.env.ELEVENLABS_API_KEY?.trim()),
+      sentry: sentryEnabled(),
+    }),
+  )
 
   app.get('/api/auth/config', (c) => c.json({ googleClientId: googleClientId() }))
 
@@ -50,7 +59,7 @@ export function createApp(): Hono {
       const profile = await verifyGoogleIdToken(credential)
       return c.json(profile)
     } catch (error) {
-      const failed = fail(error)
+      const failed = fail('auth', error)
       return c.json(failed.body, failed.status)
     }
   })
@@ -70,7 +79,7 @@ export function createApp(): Hono {
       const results = await searchPlaces(query, near)
       return c.json({ results })
     } catch (error) {
-      const failed = fail(error)
+      const failed = fail('search', error)
       return c.json(failed.body, failed.status)
     }
   })
@@ -91,7 +100,7 @@ export function createApp(): Hono {
       const studies = await nearbyStudies(latitude, longitude, radius)
       return c.json({ studies })
     } catch (error) {
-      const failed = fail(error)
+      const failed = fail('nearby', error)
       return c.json(failed.body, failed.status)
     }
   })
@@ -112,7 +121,7 @@ export function createApp(): Hono {
       ])
       return c.json({ name, weatherLine: sky, latitude, longitude })
     } catch (error) {
-      const failed = fail(error)
+      const failed = fail('place', error)
       return c.json(failed.body, failed.status)
     }
   })
@@ -129,7 +138,7 @@ export function createApp(): Hono {
       const card = await writeFieldCard(parsed.data, sky)
       return c.json(card)
     } catch (error) {
-      const failed = fail(error)
+      const failed = fail('field-card', error)
       return c.json(failed.body, failed.status)
     }
   })
@@ -141,12 +150,12 @@ export function createApp(): Hono {
     const spokenScript = typeof body?.spokenScript === 'string' ? body.spokenScript : ''
     try {
       const audio = await narrate(spokenScript)
-      return c.body(audio, 200, {
+      return c.body(audio.slice(0), 200, {
         'Content-Type': 'audio/mpeg',
         'Cache-Control': 'no-store',
       })
     } catch (error) {
-      const failed = fail(error)
+      const failed = fail('narrate', error)
       return c.json(failed.body, failed.status)
     }
   })

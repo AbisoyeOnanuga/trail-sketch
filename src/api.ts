@@ -70,14 +70,25 @@ export async function requestFieldCard(body: FieldCardRequest): Promise<FieldCar
   return parsed.data
 }
 
+const spokenClips = new Map<string, Blob>()
+
 export async function requestNarration(spokenScript: string): Promise<Blob> {
+  const key = spokenScript.trim()
+  const cached = spokenClips.get(key)
+  if (cached) return cached
   const response = await fetch('/api/narrate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ spokenScript }),
   })
   if (!response.ok) throw new Error(await readError(response))
-  return response.blob()
+  const clip = await response.blob()
+  if (spokenClips.size >= 6) {
+    const oldest = spokenClips.keys().next().value
+    if (oldest) spokenClips.delete(oldest)
+  }
+  spokenClips.set(key, clip)
+  return clip
 }
 
 export function readCachedCard(): FieldCard | null {

@@ -1,8 +1,10 @@
 import { serve } from '@hono/node-server'
 import { createApp } from './app.ts'
 import { loadEnvFile } from './env.ts'
+import { initSentry } from './sentry.ts'
 
 loadEnvFile()
+initSentry()
 
 const port = Number(process.env.PORT ?? 8787)
 const app = createApp()

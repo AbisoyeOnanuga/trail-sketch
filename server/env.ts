@@ -8,6 +8,7 @@ const allowed = new Set([
   'ELEVENLABS_API_KEY',
   'ELEVENLABS_VOICE_ID',
   'GOOGLE_CLIENT_ID',
+  'SENTRY_DSN',
   'PORT',
 ])
 

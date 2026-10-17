@@ -15,6 +15,7 @@ import {
   type StudyKind,
 } from '../../shared/studies.ts'
 import { kindLabel } from '../library.ts'
+import { FieldContours } from '../art/contours.tsx'
 import { BackMark, MapMark } from '../icons/glyphs.tsx'
 import { ReachMark } from '../icons/marks.tsx'
 
@@ -280,6 +281,7 @@ export function Explorer({
       ref={sectionRef}
       style={dragHeight === null ? undefined : { height: `${dragHeight}px` }}
     >
+      <FieldContours />
       <button
         type="button"
         className="sheet-handle"
