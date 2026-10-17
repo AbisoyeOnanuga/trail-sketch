@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { mediumPhrases, usesPigment, type FieldCard, type Location, type Medium } from '../../shared/contract.ts'
 import { placeSeed, toneNotes } from '../plan/fallback.ts'
 import { PlacePreview } from '../explore/Explorer.tsx'
@@ -62,10 +62,10 @@ export function FieldSheet({
   usePaneScroll(pane)
   const study = card ?? null
   const pigment = usesPigment(medium)
-  const [pickedInk, setPickedInk] = useState<InkId | null>(null)
-  useEffect(() => {
-    setPickedInk(null)
-  }, [location.latitude, location.longitude])
+  const placeKey = `${location.latitude},${location.longitude}`
+  const [inkPick, setInkPick] = useState<{ key: string; id: InkId } | null>(null)
+  const pickedInk = inkPick?.key === placeKey ? inkPick.id : null
+  const setPickedInk = (id: InkId) => setInkPick({ key: placeKey, id })
   const inkId = pickedInk ?? suggestInk(kind, weatherLine || study?.weatherLine || '')
   const ink = inkChoices.find((item) => item.id === inkId) ?? inkChoices[0]
   const pigments = pigment
@@ -93,7 +93,7 @@ export function FieldSheet({
         </button>
       </div>
       <div className="study-hero">
-        {kind ? <PlacePreview kind={kind} name={study?.placeName ?? location.name} /> : null}
+        {kind ? <PlacePreview kind={kind} name={study?.placeName ?? location.name} latitude={location.latitude} longitude={location.longitude} /> : null}
         <div>
           <h2>{study?.placeName ?? location.name}</h2>
           <p className="weather">{study?.weatherLine || weatherLine || 'Reading the light…'}</p>

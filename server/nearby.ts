@@ -89,23 +89,14 @@ async function overpass(query: string): Promise<OverpassElement[]> {
 }
 
 // Photon answers one request per caller at a time, so fewer, wider requests are faster than many narrow ones.
-// Lookouts get their own request because they sit farther out and the nearest-first list would crowd them out.
+// Each group is nearest-first, so dense city tags get their own group and cannot crowd out parks, water, or lookouts.
 const PHOTON_GROUPS = [
-  [
-    'leisure:park',
-    'leisure:garden',
-    'natural:water',
-    'natural:beach',
-    'natural:peak',
-    'amenity:place_of_worship',
-    'historic:monument',
-    'historic:building',
-    'historic:castle',
-    'place:square',
-    'man_made:tower',
-  ],
+  ['leisure:park', 'leisure:garden', 'natural:water', 'natural:beach', 'natural:peak'],
+  ['amenity:place_of_worship', 'historic:monument', 'historic:building', 'historic:castle', 'place:square', 'man_made:tower'],
   ['tourism:viewpoint'],
 ]
+const PER_KIND = 6
+const MAX_STUDIES = 20
 
 type PhotonFeature = {
   geometry?: { coordinates?: number[] }
@@ -117,12 +108,12 @@ async function photonGroup(latitude: number, longitude: number, radius: number, 
   url.searchParams.set('lat', String(latitude))
   url.searchParams.set('lon', String(longitude))
   url.searchParams.set('radius', String(Math.max(0.4, radius / 1000)))
-  url.searchParams.set('limit', tags.length > 1 ? '50' : '8')
+  url.searchParams.set('limit', tags.length > 1 ? '40' : '10')
   url.searchParams.set('lang', 'en')
   for (const tag of tags) url.searchParams.append('osm_tag', tag)
   const response = await fetch(url, {
     headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
-    signal: AbortSignal.timeout(3_000),
+    signal: AbortSignal.timeout(5_000),
   })
   if (!response.ok) throw new Error('nearby_failed')
   const data = (await response.json()) as { features?: PhotonFeature[] }
@@ -154,6 +145,14 @@ way(around:${around})["name"]["natural"="water"];
 );out center 36;`
 }
 
+// Keeps the nearest of a kind, then picks the rest evenly out to the far edge of the radius.
+function spreadAcross(sorted: Study[]): Study[] {
+  if (sorted.length <= PER_KIND) return sorted
+  const picks = new Set<number>()
+  for (let step = 0; step < PER_KIND; step += 1) picks.add(Math.round((step * (sorted.length - 1)) / (PER_KIND - 1)))
+  return [...picks].map((index) => sorted[index])
+}
+
 export async function nearbyStudies(latitude: number, longitude: number, radius: number): Promise<Study[]> {
   const key = `${latitude.toFixed(2)}:${longitude.toFixed(2)}:${radius}`
   const hit = cache.get(key)
@@ -169,6 +168,7 @@ export async function nearbyStudies(latitude: number, longitude: number, radius:
     const at = point(element)
     if (!at) continue
     const kind = kindOf(tags)
+    if (!tags.name?.trim() && (kind === 'park' || kind === 'architecture')) continue
     const name = placeName(tags, kind)
     if (/edge walk|via ferrata|bungee|climb the|splash pad|rink|pool|public health/i.test(name)) continue
     const stamp = `${name.toLowerCase()}:${kind}`
@@ -189,16 +189,12 @@ export async function nearbyStudies(latitude: number, longitude: number, radius:
     if (parsed.success && parsed.data.distanceMeters <= radius) studies.push(parsed.data)
   }
   studies.sort((a, b) => a.distanceMeters - b.distanceMeters)
-  const balanced: Study[] = []
-  const counts = new Map<string, number>()
-  for (const study of studies) {
-    const count = counts.get(study.kind) ?? 0
-    if (count >= 3) continue
-    balanced.push(study)
-    counts.set(study.kind, count + 1)
-    if (balanced.length >= 12) break
-  }
-  balanced.sort((a, b) => a.distanceMeters - b.distanceMeters)
+  const byKind = new Map<StudyKind, Study[]>()
+  for (const study of studies) byKind.set(study.kind, [...(byKind.get(study.kind) ?? []), study])
+  const balanced = [...byKind.values()]
+    .flatMap(spreadAcross)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, MAX_STUDIES)
   if (cache.size > 40) {
     const oldest = cache.keys().next().value
     if (oldest) cache.delete(oldest)

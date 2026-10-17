@@ -3,6 +3,7 @@ import {
   Marker,
   NavigationControl,
   setWorkerUrl,
+  type ExpressionSpecification,
   type GeoJSONSource,
   type MapMouseEvent,
   type PointLike,
@@ -13,6 +14,7 @@ import { useEffect, useRef } from 'react'
 import type { Location } from '../../shared/contract.ts'
 import type { Spot } from '../data/spots.ts'
 import { pinMarkup } from '../icons/pins.ts'
+import { paintWatercolor } from './watercolor.ts'
 
 type MapPoint = { longitude: number; latitude: number }
 type Kind = NonNullable<Spot['kind']>
@@ -26,9 +28,12 @@ type MapViewProps = {
   inset: MapInset
   active: (Location & { kind: Kind | null }) | null
   hoverId: string | null
+  dropped: Location | null
   onPin: (spot: Spot) => void
   onHover: (id: string | null) => void
-  onGround: (location: Location) => void
+  onDrop: (location: Location | null) => void
+  onDropAction: (action: 'area' | 'study') => void
+  onPan: (center: MapPoint) => void
 }
 
 const kindColors: Record<Kind, string> = {
@@ -72,6 +77,28 @@ function addPlaceLayers(map: Map, spots: Spot[]) {
     clusterRadius: 34,
     clusterMaxZoom: 14,
   })
+  const kindColor: ExpressionSpecification = [
+    'match',
+    ['get', 'kind'],
+    'water', kindColors.water,
+    'park', kindColors.park,
+    'viewpoint', kindColors.viewpoint,
+    'architecture', kindColors.architecture,
+    'hill', kindColors.hill,
+    '#2c4a68',
+  ]
+  map.addLayer({
+    id: 'place-bloom',
+    type: 'circle',
+    source: 'places',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 8, 15, 14],
+      'circle-color': kindColor,
+      'circle-opacity': 0.28,
+      'circle-blur': 0.85,
+    },
+  })
   map.addLayer({
     id: 'place-clusters',
     type: 'circle',
@@ -79,9 +106,10 @@ function addPlaceLayers(map: Map, spots: Spot[]) {
     filter: ['has', 'point_count'],
     paint: {
       'circle-color': '#f4f2ec',
+      'circle-opacity': 0.94,
       'circle-radius': ['step', ['get', 'point_count'], 11, 6, 14, 12, 17],
-      'circle-stroke-color': '#2c4a68',
-      'circle-stroke-width': 1.5,
+      'circle-stroke-color': '#3b352c',
+      'circle-stroke-width': 1.25,
     },
   })
   map.addLayer({
@@ -95,7 +123,7 @@ function addPlaceLayers(map: Map, spots: Spot[]) {
       'text-size': 11,
       'text-allow-overlap': true,
     },
-    paint: { 'text-color': '#2c4a68' },
+    paint: { 'text-color': '#3b352c' },
   })
   map.addLayer({
     id: 'place-hover',
@@ -115,24 +143,28 @@ function addPlaceLayers(map: Map, spots: Spot[]) {
     source: 'places',
     filter: ['!', ['has', 'point_count']],
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 15, 6.5],
-      'circle-color': [
-        'match',
-        ['get', 'kind'],
-        'water', kindColors.water,
-        'park', kindColors.park,
-        'viewpoint', kindColors.viewpoint,
-        'architecture', kindColors.architecture,
-        'hill', kindColors.hill,
-        '#2c4a68',
-      ],
-      'circle-stroke-color': ['case', ['==', ['get', 'studied'], 1], '#1f6b56', '#f4f2ec'],
-      'circle-stroke-width': ['case', ['==', ['get', 'studied'], 1], 3, 1.5],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4.5, 15, 7],
+      'circle-color': kindColor,
+      'circle-stroke-color': ['case', ['==', ['get', 'studied'], 1], '#3b352c', '#f4f2ec'],
+      'circle-stroke-width': ['case', ['==', ['get', 'studied'], 1], 2.5, 2],
     },
   })
 }
 
-export function MapView({ spots, camera, here, inset, active, hoverId, onPin, onHover, onGround }: MapViewProps) {
+export function MapView({
+  spots,
+  camera,
+  here,
+  inset,
+  active,
+  hoverId,
+  dropped,
+  onPin,
+  onHover,
+  onDrop,
+  onDropAction,
+  onPan,
+}: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const insetRef = useRef(inset)
@@ -140,11 +172,12 @@ export function MapView({ spots, camera, here, inset, active, hoverId, onPin, on
   const spotsRef = useRef(spots)
   const activeMarkerRef = useRef<Marker | null>(null)
   const hereMarkerRef = useRef<Marker | null>(null)
-  const handlers = useRef({ onPin, onHover, onGround })
+  const dropMarkerRef = useRef<Marker | null>(null)
+  const handlers = useRef({ onPin, onHover, onDrop, onDropAction, onPan })
 
   useEffect(() => {
-    handlers.current = { onPin, onHover, onGround }
-  }, [onPin, onHover, onGround])
+    handlers.current = { onPin, onHover, onDrop, onDropAction, onPan }
+  }, [onPin, onHover, onDrop, onDropAction, onPan])
 
   useEffect(() => {
     const container = containerRef.current
@@ -156,8 +189,10 @@ export function MapView({ spots, camera, here, inset, active, hoverId, onPin, on
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [10, 28],
       zoom: 1.5,
+      attributionControl: { compact: true },
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right')
+    map.on('style.load', () => paintWatercolor(map))
     map.on('load', () => addPlaceLayers(map, spotsRef.current))
 
     map.on('click', (event: MapMouseEvent) => {
@@ -183,11 +218,17 @@ export function MapView({ spots, camera, here, inset, active, hoverId, onPin, on
         })
         return
       }
-      handlers.current.onGround({
+      handlers.current.onDrop({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
         name: 'This spot',
       })
+    })
+
+    map.on('moveend', (event) => {
+      if (!('originalEvent' in event) || !event.originalEvent) return
+      const center = map.getCenter()
+      handlers.current.onPan({ longitude: center.lng, latitude: center.lat })
     })
 
     map.on('mousemove', 'place-dots', (event) => {
@@ -216,6 +257,7 @@ export function MapView({ spots, camera, here, inset, active, hoverId, onPin, on
       observer.disconnect()
       activeMarkerRef.current?.remove()
       hereMarkerRef.current?.remove()
+      dropMarkerRef.current?.remove()
       map.remove()
       mapRef.current = null
     }
@@ -280,6 +322,64 @@ export function MapView({ spots, camera, here, inset, active, hoverId, onPin, on
     if (map.isMoving()) map.once('moveend', apply)
     else apply()
   }, [insetTop, insetBottom, insetLeft, insetRight])
+
+  const droppedLongitude = dropped?.longitude
+  const droppedLatitude = dropped?.latitude
+
+  useEffect(() => {
+    const map = mapRef.current
+    dropMarkerRef.current?.remove()
+    dropMarkerRef.current = null
+    if (!map || droppedLongitude === undefined || droppedLatitude === undefined) return
+    const pin = document.createElement('div')
+    pin.className = 'drop-pin'
+    const card = document.createElement('div')
+    card.className = 'drop-card'
+    card.setAttribute('role', 'group')
+    card.setAttribute('aria-label', 'Dropped pin')
+    const button = (label: string, className: string, onClick: () => void) => {
+      const element = document.createElement('button')
+      element.type = 'button'
+      element.className = className
+      element.textContent = label
+      element.addEventListener('click', (event) => {
+        event.stopPropagation()
+        onClick()
+      })
+      return element
+    }
+    card.append(
+      button('Look around here', 'drop-primary', () => handlers.current.onDropAction('area')),
+      button('Study this spot', 'drop-secondary', () => handlers.current.onDropAction('study')),
+      button('×', 'drop-close', () => handlers.current.onDrop(null)),
+    )
+    card.lastElementChild?.setAttribute('aria-label', 'Remove pin')
+    for (const type of ['mousedown', 'touchstart', 'pointerdown', 'dblclick', 'wheel']) {
+      card.addEventListener(type, (event) => event.stopPropagation(), { passive: true })
+    }
+    const mark = document.createElement('span')
+    mark.className = 'drop-mark'
+    mark.setAttribute('aria-hidden', 'true')
+    pin.append(card, mark)
+    dropMarkerRef.current = new Marker({ element: pin, anchor: 'bottom', offset: [0, 12] })
+      .setLngLat([droppedLongitude, droppedLatitude])
+      .addTo(map)
+    card.querySelector<HTMLButtonElement>('.drop-primary')?.focus({ preventScroll: true })
+    requestAnimationFrame(() => {
+      const box = card.getBoundingClientRect()
+      const frame = map.getContainer().getBoundingClientRect()
+      const margin = 8
+      const top = frame.top + insetRef.current.top + margin
+      const dx =
+        box.left < frame.left + margin
+          ? box.left - frame.left - margin
+          : box.right > frame.right - margin
+            ? box.right - frame.right + margin
+            : 0
+      const dy = box.top < top ? box.top - top : 0
+      if (dx || dy) map.panBy([dx, dy], { duration: 250 })
+    })
+  }, [droppedLongitude, droppedLatitude])
 
   const cameraLongitude = camera?.longitude
   const cameraLatitude = camera?.latitude

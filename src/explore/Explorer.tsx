@@ -26,18 +26,20 @@ const palettes: Record<StudyKind, [string, string, string]> = {
   hill: ['#f3ead8', '#8d9378', '#3e4a38'],
 }
 
-export function PlacePreview({ kind, name }: { kind: StudyKind; name: string }) {
+type PreviewProps = { kind: StudyKind; name: string; latitude: number; longitude: number }
+
+export function PlacePreview({ kind, name, latitude, longitude }: PreviewProps) {
   const [photo, setPhoto] = useState<string | null>(null)
 
   useEffect(() => {
     let live = true
-    void placePhoto(name).then((source) => {
+    void placePhoto(latitude, longitude, kind, name).then((source) => {
       if (live) setPhoto(source)
     })
     return () => {
       live = false
     }
-  }, [name])
+  }, [latitude, longitude, kind, name])
 
   if (photo) return <img className="study-art" src={photo} alt="" />
   return <StudyArt kind={kind} />
@@ -383,7 +385,7 @@ export function Explorer({
                     onFocus={() => onHover(study.id)}
                     onBlur={() => onHover(null)}
                   >
-                    <PlacePreview kind={study.kind} name={study.name} />
+                    <PlacePreview kind={study.kind} name={study.name} latitude={study.latitude} longitude={study.longitude} />
                     <span className="preview-copy">
                       <h3>{study.name}</h3>
                       <p>

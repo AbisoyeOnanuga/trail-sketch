@@ -85,6 +85,17 @@ button:disabled { cursor: progress; opacity: 0.65; }
   height: 100% !important;
 }
 
+/* The map style clears its own background, so this cold-press paper sits under every wash. */
+.map {
+  background-color: var(--paper);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 20% 15%, color-mix(in srgb, #e9dfc8 55%, transparent), transparent 60%),
+    radial-gradient(ellipse at 85% 80%, color-mix(in srgb, #dfe6e2 60%, transparent), transparent 55%),
+    var(--grid);
+  background-size: 220px 220px, 100% 100%, 100% 100%, 18px 18px, 18px 18px, 90px 90px, 90px 90px;
+}
+
 .map .maplibregl-ctrl-bottom-right { bottom: 4.5rem; }
 .map .maplibregl-ctrl-group {
   border-radius: var(--radius);
@@ -414,9 +425,9 @@ button:disabled { cursor: progress; opacity: 0.65; }
   width: 1.05rem;
   height: 1.05rem;
   border-radius: 50%;
-  background: #4285f4;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 7px rgba(66, 133, 244, 0.3);
+  background: #3567a8;
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 7px color-mix(in srgb, #3567a8 26%, transparent), 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent);
   pointer-events: none;
 }
 
@@ -426,8 +437,8 @@ button:disabled { cursor: progress; opacity: 0.65; }
   top: calc(100% + 0.45rem);
   transform: translateX(-50%);
   white-space: nowrap;
-  background: #1a73e8;
-  color: #fff;
+  background: #3567a8;
+  color: var(--paper);
   font-family: var(--mono);
   font-size: 0.68rem;
   font-weight: 600;
@@ -478,6 +489,115 @@ button:disabled { cursor: progress; opacity: 0.65; }
   font-size: 0.66rem;
   font-weight: 500;
   border-radius: var(--radius);
+}
+
+/* Dropped pin: a surveyor's mark with a small card. Nothing reloads until a button is chosen. */
+.drop-pin {
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.drop-mark {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.3rem;
+  border: 2px solid var(--cadmium);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cadmium) 14%, transparent);
+  animation: drop-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.drop-mark::before, .drop-mark::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: var(--cadmium);
+  transform: translate(-50%, -50%);
+}
+.drop-mark::before { width: 2px; height: 0.7rem; }
+.drop-mark::after { width: 0.7rem; height: 2px; }
+.drop-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--vellum-strong);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow);
+  animation: card-in 220ms ease-out;
+}
+.drop-card button {
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+  transition: transform var(--ease), background-color var(--ease), border-color var(--ease);
+}
+.drop-primary {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 650;
+}
+.drop-secondary {
+  grid-column: 1;
+  border: 1px solid var(--rule);
+  background: var(--card);
+}
+.drop-close {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 1.1rem !important;
+  color: var(--muted);
+}
+.drop-card button:active { transform: translate(1px, 1px); }
+@media (hover: hover) {
+  .drop-secondary:hover { border-color: var(--cobalt); }
+  .drop-close:hover { color: var(--ink); }
+}
+@keyframes drop-in {
+  0% { transform: translateY(-14px) scale(0.6); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes card-in {
+  0% { transform: translateY(6px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+.look-here {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--bar-h, 7rem) + 0.6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--vellum-strong);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  animation: card-in 220ms ease-out;
+  transition: background-color var(--ease), transform var(--ease);
+}
+.look-here svg { width: 1rem; height: 1rem; }
+.look-here:active { transform: translateX(-50%) translateY(1px); }
+@media (hover: hover) {
+  .look-here:hover { background: #fbfaf6; }
 }
 
 /* Explorer: a bottom sheet on phones and tablets, a side panel on desktop. */
@@ -810,6 +930,8 @@ button:disabled { cursor: progress; opacity: 0.65; }
 
   .map .maplibregl-ctrl-bottom-right { bottom: 1rem; right: 1rem; }
   .app:has(.sheet) .map .maplibregl-ctrl-bottom-right { right: calc(min(27rem, 34vw) + 2rem); }
+
+  .look-here { top: 1.25rem; left: calc(50% + min(13rem, 16vw) + 0.5rem); }
 }
 
 /* Spinners adapted from Uiverse Galaxy (MIT): AHMED-MIT nested ring and AbanoubMagdy1 ring.
@@ -862,7 +984,8 @@ button:disabled { cursor: progress; opacity: 0.65; }
   .sheet, .explorer, .gate { animation: none; transition: none; }
   .preview, .locate, .secondary, .text-button, .chips button, .mediums button, .ink-row button,
   .search button, .primary, .use-map, .back-button { transition: none; transform: none !important; }
-  .preview.is-ghost .study-art, .ghost-line, .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art, .here-label {
+  .preview.is-ghost .study-art, .ghost-line, .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art, .here-label,
+  .drop-mark, .drop-card, .look-here {
     animation: none;
   }
 }

@@ -125,7 +125,7 @@ export const studySchema = z.object({
 export type Study = z.infer<typeof studySchema>
 
 export const nearbySchema = z.object({
-  studies: z.array(studySchema).max(12),
+  studies: z.array(studySchema).max(20),
 })
 
 export function distanceMeters(fromLat: number, fromLon: number, toLat: number, toLon: number): number {

@@ -1,6 +1,6 @@
 # Services and resources
 
-Everything Trail Sketch depends on, in one place. Checked against the code on October 17, 2026.
+Everything Trail Sketch depends on, in one place. Checked against the code on October 16, 2026.
 
 Status words used below:
 
@@ -22,7 +22,7 @@ Status words used below:
 | Nominatim (OpenStreetMap) | Place search and names | No | Fallback |
 | Overpass API | Nearby places | No | Fallback |
 | Open-Meteo | Current weather and light | No | Active |
-| Wikipedia API | Place photos | No | Active |
+| Wikimedia Commons API | Photos taken near each place | No | Active |
 | Google Fonts | Fraunces, Literata, IBM Plex Mono | No | Active |
 | Google Maps (link only) | Walking directions | No | Active |
 | Google Identity Services | Sign in to keep places with an account | `GOOGLE_CLIENT_ID` | Built, not switched on |
@@ -68,7 +68,9 @@ Reads the plan aloud through **Hear this plan**.
 
 - MapLibre draws the map in the browser (`src/map/MapView.tsx`). It needs a web worker to draw streets and labels. If the map ever shows only a plain background while the list still works, open a fresh tab.
 - The map style is OpenFreeMap "liberty", which uses OpenStreetMap data: `https://tiles.openfreemap.org/styles/liberty`. It is free and needs no key.
-- The OpenStreetMap credit in the map corner is required. Keep it.
+- The app repaints that style as a watercolour field sheet when it loads (`src/map/watercolor.ts`). Water, parks, and woods become soft washes. Roads become light pencil lines. Shop and transit icons, highway shields, and 3D buildings are hidden. The paper texture comes from the CSS behind the map, so if the style ever changes its layer names, the affected layers just keep their original colours.
+- The OpenStreetMap credit in the map corner is required. Keep it. It is collapsed to the small (i) button so it does not cover the map on phones.
+- **Pin drop**: tapping empty map drops a pin with two choices, **Look around here** (loads places around the pin) and **Study this spot** (opens the pin as a place). Nothing reloads until you choose. After you pan away from the current area, a **Look around here** button appears at the top of the map.
 
 ### Photon, by Komoot
 
@@ -76,7 +78,8 @@ The main place service. Free, no key, run as a fair-use public service.
 
 - **Search as you type**: `/api/`, weighted toward where you are (`server/places.ts`).
 - **Place names** for a tapped spot: `/reverse`, with a 2.5 second timeout.
-- **Nearby places**: `/reverse` with OpenStreetMap tags, sent as two grouped requests (`server/nearby.ts`). One request covers nature, places of worship, historic sites, squares, and towers; the other covers viewpoints. Photon answers one request at a time per caller, so fewer, wider requests are faster than many small ones.
+- **Nearby places**: `/reverse` with OpenStreetMap tags, sent as three grouped requests (`server/nearby.ts`): nature (parks, gardens, water, beaches, peaks), architecture (places of worship, monuments, historic buildings, castles, squares, towers), and viewpoints. Photon answers one request at a time per caller, so a first look takes about 3 to 5 seconds; repeat looks within 30 minutes come from the cache.
+- Photon returns the nearest results first. To fill the whole radius instead of one block, the app keeps up to 6 places of each kind, spaced out from nearest to farthest, and shows up to 20 in total. Unnamed parks and buildings are skipped.
 
 ### Nominatim, by OpenStreetMap (fallback)
 
@@ -96,9 +99,11 @@ Used for nearby places only if Photon returns nothing. Two public servers race e
 
 ## Photos
 
-**Wikipedia API**, `https://en.wikipedia.org/w/api.php`, called straight from the browser (`src/photos.ts`).
+**Wikimedia Commons API**, `https://commons.wikimedia.org/w/api.php`, called straight from the browser (`src/photos.ts`).
 
-- Searches the place name and takes the first page's thumbnail (480 px). The image itself comes from Wikimedia.
+- Looks for photos taken near the place's coordinates, not photos matching its name, so a park named after a person shows the park rather than the person. The search radius depends on the kind of place: 120 m for buildings, 250 m for viewpoints, and 300 m for water, parks, and hills.
+- Skips portraits and photos of people (judged by the file's categories and title), as well as maps, logos, diagrams, and cropped images. Only JPEG, PNG, and WebP are used.
+- Among what is left, it prefers photos whose title mentions the place name or a view word, then the closest. Thumbnails are 480 px. Results are kept for the session.
 - When there is no photo, the card shows painted scene art with contour lines (`StudyArt` in `src/explore/Explorer.tsx`).
 
 ## Sign-in (built, not switched on)
@@ -107,7 +112,7 @@ Used for nearby places only if Photon returns nothing. Two public servers race e
 
 - The server checks the sign-in token with `https://oauth2.googleapis.com/tokeninfo` (`server/google.ts`, `POST /api/auth/google`).
 - Signing in only changes which list of places is used on this phone. Places are still stored on the device; there is no server database.
-- To switch it on, create a Web client ID in Google Cloud, add the site's address as an authorized origin, and set `GOOGLE_CLIENT_ID` in `.env` and on Render. On October 17 it was empty in both places, so the sign-in button does not appear.
+- To switch it on, create a Web client ID in Google Cloud, add the site's address as an authorized origin, and set `GOOGLE_CLIENT_ID` in `.env` and on Render. On October 16 it was empty in both places, so the sign-in button does not appear.
 
 ## Links out
 

@@ -269,6 +269,41 @@ export default function App() {
     )
   }, [])
 
+  const [dropped, setDropped] = useState<Location | null>(null)
+  const [panCenter, setPanCenter] = useState<{ latitude: number; longitude: number } | null>(null)
+
+  const lookAround = useCallback(
+    (latitude: number, longitude: number) => {
+      setDropped(null)
+      setPanCenter(null)
+      setPlaces('open')
+      acceptFix(latitude, longitude)
+    },
+    [acceptFix],
+  )
+
+  const onDropAction = useCallback(
+    (action: 'area' | 'study') => {
+      if (!dropped) return
+      if (action === 'area') {
+        lookAround(dropped.latitude, dropped.longitude)
+        return
+      }
+      setDropped(null)
+      void choose(dropped)
+    },
+    [dropped, lookAround, choose],
+  )
+
+  useEffect(() => {
+    if (!dropped) return
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setDropped(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [dropped])
+
   const locate = useCallback(() => {
     readPosition((latitude, longitude) => acceptFix(latitude, longitude))
   }, [acceptFix, readPosition])
@@ -477,6 +512,15 @@ export default function App() {
   const showExplorer = selected === null && !libraryOpen && (places === 'open' || interestGate)
   const showPlacesDock = selected === null && !libraryOpen && !interestGate && places !== 'open'
   const showStudy = selected !== null && !libraryOpen
+  const areaMeters = distanceChoices.find((choice) => choice.id === distance)?.meters ?? 4000
+  const showLookHere =
+    !showStudy &&
+    !libraryOpen &&
+    !areaBusy &&
+    dropped === null &&
+    panCenter !== null &&
+    (area === null ||
+      distanceMeters(area.latitude, area.longitude, panCenter.latitude, panCenter.longitude) > Math.max(600, areaMeters * 0.3))
 
   const [mapInset, setMapInset] = useState<MapInset>({ top: 0, bottom: 0, left: 0, right: 0 })
   useEffect(() => {
@@ -638,7 +682,7 @@ export default function App() {
               onMouseEnter={() => setSuggestIndex(index)}
               onClick={() => chooseSuggestion(index)}
             >
-              <PlacePreview kind={study.kind} name={study.name} />
+              <PlacePreview kind={study.kind} name={study.name} latitude={study.latitude} longitude={study.longitude} />
               <span>
                 <strong>{study.name}</strong>
                 <small>
@@ -683,8 +727,22 @@ export default function App() {
         hoverId={hoverId}
         onPin={onPin}
         onHover={setHoverId}
-        onGround={(location) => void choose(location)}
+        dropped={dropped}
+        onDrop={setDropped}
+        onDropAction={onDropAction}
+        onPan={setPanCenter}
       />
+
+      {showLookHere && panCenter ? (
+        <button
+          type="button"
+          className="look-here"
+          onClick={() => lookAround(panCenter.latitude, panCenter.longitude)}
+        >
+          <LocateMark />
+          Look around here
+        </button>
+      ) : null}
 
       {showStudy ? (
         <FieldSheet
