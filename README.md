@@ -14,14 +14,14 @@ The map and search work without keys. Copy `.env.example` to `.env` in this fold
 | Name | Purpose |
 | --- | --- |
 | `GEMMA_API_KEY` | Google AI Studio key for the deployed app. `GEMINI_API_KEY` is read only if this name is empty. A local Ollama server does not need it. |
-| `GEMMA_MODEL` | Deployed app: `gemma-4-26b-a4b-it`. Local Ollama: any tag from `ollama list`. |
-| `GEMMA_BASE_URL` | Empty for Google. `http://127.0.0.1:11434/v1` reaches a local Ollama server. The model is whichever tag you set. |
+| `GEMMA_MODEL` | Deployed app: `gemma-4-26b-a4b-it`. Local Ollama: a tag from `ollama list` on that machine. |
+| `GEMMA_BASE_URL` | Empty for Google. `http://127.0.0.1:11434/v1` reaches a local Ollama server, using whatever model tag you set. |
 | `GOOGLE_CLIENT_ID` | Optional Google sign-in so studied places stay with that account on the phone |
 | `ELEVENLABS_API_KEY` | Turns the spoken reading on. Without it, Read aloud stays quiet. |
 | `ELEVENLABS_VOICE_ID` | Optional, and only for a custom voice. Leave it empty and the reading uses a public ElevenLabs voice. |
 | `SENTRY_DSN` | Optional. Sends server errors to Sentry. Leave it empty and nothing is reported. |
 
-`GEMMA_BASE_URL` must be `https`, or `http` only on localhost. The server does not read a separate Ollama variable. Ollama is only the local model service: set the base URL, then set `GEMMA_MODEL` to any model you have pulled.
+`GEMMA_BASE_URL` must be `https`, or `http` only on localhost. The server does not read a separate Ollama variable. Ollama is the local model service, and the model is whichever tag that machine has pulled. The Google id is the deployed app, not a local default.
 
 Every third-party service, library, and stored value is listed in [docs/SERVICES.md](docs/SERVICES.md).
 

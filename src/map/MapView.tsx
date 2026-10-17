@@ -26,6 +26,7 @@ type MapViewProps = {
   camera: Location | null
   // "area" centers the search, including a pin. "place" may frame you and that place together.
   frame: 'area' | 'place'
+  reachMeters: number
   here: MapPoint | null
   inset: MapInset
   active: (Location & { kind: Kind | null }) | null
@@ -157,6 +158,7 @@ export function MapView({
   spots,
   camera,
   frame,
+  reachMeters,
   here,
   inset,
   active,
@@ -416,6 +418,18 @@ export function MapView({
   useEffect(() => {
     const map = mapRef.current
     if (!map || cameraLongitude === undefined || cameraLatitude === undefined) return
+    if (frame === 'area' && reachMeters >= 12_000) {
+      const latRad = (cameraLatitude * Math.PI) / 180
+      const dLat = reachMeters / 111_320
+      const dLon = reachMeters / (111_320 * Math.max(0.2, Math.cos(latRad)))
+      fitRef.current = [
+        [cameraLongitude - dLon, cameraLatitude - dLat],
+        [cameraLongitude + dLon, cameraLatitude + dLat],
+      ]
+      map.setPadding(insetRef.current)
+      map.fitBounds(fitRef.current, { padding: FIT_PADDING, maxZoom: 12, essential: true })
+      return
+    }
     const hasHere = hereLongitude !== undefined && hereLatitude !== undefined
     const apart =
       frame === 'place' &&
@@ -444,7 +458,7 @@ export function MapView({
       padding: insetRef.current,
       essential: true,
     })
-  }, [cameraLongitude, cameraLatitude, hereLongitude, hereLatitude, frame])
+  }, [cameraLongitude, cameraLatitude, hereLongitude, hereLatitude, frame, reachMeters])
 
   return <div ref={containerRef} className="map" />
 }

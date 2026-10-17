@@ -9,7 +9,7 @@ services:
         value: production
       - key: GEMMA_API_KEY
         sync: false
-      # Google's model id. A local Ollama deploy should replace this with the Ollama tag.
+      # Google's model id for this deployed app. An Ollama host should set a tag from its own `ollama list`.
       - key: GEMMA_MODEL
         value: gemma-4-26b-a4b-it
       - key: GEMMA_BASE_URL

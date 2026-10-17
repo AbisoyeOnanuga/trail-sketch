@@ -126,8 +126,26 @@ async function photonGroup(latitude: number, longitude: number, radius: number, 
   })
 }
 
+const WIDE_REACH = 12_000
+const RING_BEARINGS = [20, 140, 260]
+
+function destination(latitude: number, longitude: number, meters: number, bearingDeg: number): { latitude: number; longitude: number } {
+  const bearing = (bearingDeg * Math.PI) / 180
+  const latRad = (latitude * Math.PI) / 180
+  const dLat = (meters * Math.cos(bearing)) / 111_320
+  const dLon = (meters * Math.sin(bearing)) / (111_320 * Math.max(0.2, Math.cos(latRad)))
+  return { latitude: latitude + dLat, longitude: longitude + dLon }
+}
+
 async function photonNearby(latitude: number, longitude: number, radius: number): Promise<OverpassElement[]> {
-  const settled = await Promise.allSettled(PHOTON_GROUPS.map((tags) => photonGroup(latitude, longitude, radius, tags)))
+  const wide = radius >= WIDE_REACH
+  const settled = await Promise.allSettled(
+    PHOTON_GROUPS.map((tags, index) => {
+      if (!wide) return photonGroup(latitude, longitude, radius, tags)
+      const center = destination(latitude, longitude, radius * 0.7, RING_BEARINGS[index] ?? 0)
+      return photonGroup(center.latitude, center.longitude, radius * 0.4, tags)
+    }),
+  )
   const elements = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
   if (elements.length === 0 && settled.every((result) => result.status === 'rejected')) throw new Error('nearby_failed')
   return elements
@@ -145,18 +163,19 @@ way(around:${around})["name"]["natural"="water"];
 );out center 36;`
 }
 
-// Six places per kind, twenty in total. A ride or a drive still spends that same budget,
-// with more of the slots kept close and the far edge kept so the longer reach stays visible.
+// Six places per kind, twenty in total, for every reach.
+// Here and a walk space those six from nearest to farthest.
+// A hike, a ride, or a drive spends the same six on the farthest places found.
+// A nearer place keeps a slot only when nothing farther was found for that kind.
 function spreadAcross(sorted: Study[], radius: number): Study[] {
   if (sorted.length <= PER_KIND) return sorted
+  if (radius >= WIDE_REACH) return sorted.slice(-PER_KIND)
   const last = sorted.length - 1
-  const wide = radius >= 20_000
   const wanted: number[] = []
   for (let step = 0; step < PER_KIND; step += 1) {
     const t = step / (PER_KIND - 1)
-    wanted.push(Math.round((wide ? t * t : t) * last))
+    wanted.push(Math.round(t * last))
   }
-  if (wide) wanted.push(last)
   const picks: number[] = []
   for (const index of wanted) {
     if (!picks.includes(index)) picks.push(index)

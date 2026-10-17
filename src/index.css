@@ -126,6 +126,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
   left: 0.5rem;
   right: 0.5rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.45rem;
   padding: 0.6rem 0.7rem 0.6rem;
   overflow: hidden;
@@ -172,7 +173,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
 .mark-emoji { font-size: 0.95rem; line-height: 1; flex: 0 0 auto; }
 
 /* Controls */
-.search { display: flex; gap: 0.35rem; }
+.search { display: flex; gap: 0.35rem; min-width: 0; }
 
 .search input, .prompt input {
   flex: 1;
@@ -212,6 +213,8 @@ button:disabled { cursor: progress; opacity: 0.65; }
   padding: 0.5rem 0.9rem;
   font-weight: 650;
 }
+
+.search button { flex: 0 0 auto; white-space: nowrap; }
 
 .sheet-actions .primary { background: var(--cadmium); border-color: var(--cadmium); color: #fffaf5; }
 
@@ -971,11 +974,11 @@ button:disabled { cursor: progress; opacity: 0.65; }
     left: 1rem;
     top: 1rem;
     right: auto;
-    width: min(26rem, 32vw);
+    width: min(26rem, max(22rem, 32vw));
     padding: 0.8rem 0.9rem;
   }
 
-  .suggest { left: 1rem; right: auto; width: min(26rem, 32vw); }
+  .suggest { left: 1rem; right: auto; width: min(26rem, max(22rem, 32vw)); }
 
   .explorer, .explorer[data-snap] {
     left: 1rem;
@@ -983,13 +986,13 @@ button:disabled { cursor: progress; opacity: 0.65; }
     top: calc(var(--bar-h, 9rem) + 0.75rem);
     bottom: 1rem;
     height: auto;
-    width: min(26rem, 32vw);
+    width: min(26rem, max(22rem, 32vw));
     padding: 0.8rem 0.8rem 0.6rem;
     border-bottom: 1px solid var(--rule);
   }
   .sheet-handle { display: none; }
 
-  .gate { left: 1rem; right: auto; width: min(26rem, 32vw); bottom: auto; top: calc(var(--bar-h, 9rem) + 0.75rem); }
+  .gate { left: 1rem; right: auto; width: min(26rem, max(22rem, 32vw)); bottom: auto; top: calc(var(--bar-h, 9rem) + 0.75rem); }
 
   .sheet {
     top: 1rem;
@@ -1001,7 +1004,7 @@ button:disabled { cursor: progress; opacity: 0.65; }
     border-bottom: 1px solid var(--rule);
   }
 
-  .places-dock { left: 1rem; right: auto; width: min(26rem, 32vw); }
+  .places-dock { left: 1rem; right: auto; width: min(26rem, max(22rem, 32vw)); }
 
   .map .maplibregl-ctrl-bottom-right { bottom: 1rem; right: 1rem; }
   .app:has(.sheet) .map .maplibregl-ctrl-bottom-right { right: calc(min(27rem, 34vw) + 2rem); }

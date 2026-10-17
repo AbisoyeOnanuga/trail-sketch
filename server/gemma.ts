@@ -21,7 +21,9 @@ function gemmaEndpoint(): { url: string; key: string; model: string; local: bool
   if (!allowed) throw new Error('gemma_base_url_rejected')
   const key = process.env.GEMMA_API_KEY?.trim() || (local ? 'ollama' : '')
   if (!key) return null
-  const model = process.env.GEMMA_MODEL?.trim() || GOOGLE_MODEL
+  const named = process.env.GEMMA_MODEL?.trim()
+  if (local && !named) throw new Error('missing_local_model')
+  const model = named || GOOGLE_MODEL
   const path = parsed.pathname.replace(/\/$/, '')
   return {
     url: `${parsed.origin}${path}/chat/completions`,

@@ -153,6 +153,7 @@ export async function verifyGoogle(credential: string): Promise<{ sub: string; n
 
 export const errorCopy: Record<string, string> = {
   missing_gemma_key: 'Gemma is not connected on the server.',
+  missing_local_model: 'Set GEMMA_MODEL to a tag from the local model server.',
   missing_elevenlabs_key: 'Narration needs an ElevenLabs key on the server.',
   gemma_rejected: 'Gemma refused the server key.',
   elevenlabs_rejected: 'ElevenLabs refused the key. Check ELEVENLABS_API_KEY.',

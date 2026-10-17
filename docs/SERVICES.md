@@ -48,7 +48,7 @@ The map, search, nearby places, weather, and photos all work with no keys at all
 Writes the field study: tone notes, palette, subject, a line about the light, and the script that gets read aloud.
 
 - Code: `server/gemma.ts`. Route: `POST /api/field-card`.
-- Model: `GEMMA_MODEL`. The deployed app uses Google's `gemma-4-26b-a4b-it`. A local Ollama server accepts any tag from `ollama list`.
+- Model: `GEMMA_MODEL`. The deployed app uses Google's `gemma-4-26b-a4b-it`. A local Ollama server uses whatever tag that machine has in `ollama list`. The server does not guess a local model, and the Google id is not assumed to be installed.
 - Endpoint: Google's OpenAI-compatible endpoint, `https://generativelanguage.googleapis.com/v1beta/openai`, when `GEMMA_BASE_URL` is empty. Ollama is reached only by setting `GEMMA_BASE_URL` to `http://127.0.0.1:11434/v1`. The URL must be `https`, or `http` only on localhost.
 - Key: `GEMMA_API_KEY` for Google. If it is empty, `GEMINI_API_KEY` is used instead. A local Ollama server does not need a key.
 - Behaviour: asks for JSON, at temperature 0.2, capped at 500 tokens, with Google's reasoning effort set to minimal so the token budget is spent on the plan. It waits up to 20 seconds and does not retry. A reply cut off by that cap is discarded. The sheet shows its own notes at once, then replaces them if Gemma answers.
@@ -81,7 +81,7 @@ The main place service. Free, no key, run as a fair-use public service.
 - **Search as you type**: `/api/`, weighted toward where you are (`server/places.ts`). A repeated query is kept for 90 seconds.
 - **Place names** for a tapped spot: `/reverse`, with a 2.5 second timeout. A name is kept for 30 minutes.
 - **Nearby places**: `/reverse` with OpenStreetMap tags, sent as three grouped requests (`server/nearby.ts`): nature (parks, gardens, water, beaches, peaks), architecture (places of worship, monuments, historic buildings, castles, squares, towers), and viewpoints. Photon answers one request at a time per caller, so a first look takes about 3 to 5 seconds; repeat looks within 30 minutes come from the cache.
-- Photon returns the nearest results first, at most 40 per group. The app keeps up to 6 places of each kind and 20 in total, the same budget for every reach. Here, a walk, and a hike space those 6 from nearest to farthest. A ride and a drive keep more of the 6 close in, and still keep the farthest one so the longer reach shows. Unnamed parks and buildings are skipped. The reaches are 1.5 km (here), 4 km (a walk), 12 km (a hike), 20 km (a ride), and 40 km (a drive).
+- Photon returns the nearest results first, at most 40 per group. The app keeps up to 6 places of each kind and 20 in total, the same budget for every reach. Here and a walk ask around the search point and space those 6 from nearest to farthest. A hike, a ride, and a drive ask the same three groups from points out along that reach, then keep the farthest places. A nearer place stays only when that kind has nothing farther. The map frames the whole hike, ride, or drive so those places are on screen. Unnamed parks and buildings are skipped. The reaches are 1.5 km (here), 4 km (a walk), 12 km (a hike), 20 km (a ride), and 40 km (a drive).
 
 ### Nominatim, by OpenStreetMap (fallback)
 
@@ -176,7 +176,7 @@ Server only. They are never sent to the browser. Real values go in `.env` locall
 | --- | --- | --- |
 | `GEMMA_API_KEY` | Plans from Gemma | none |
 | `GEMINI_API_KEY` | Used only if `GEMMA_API_KEY` is empty | none |
-| `GEMMA_MODEL` | Model name. Google's id, or an Ollama tag when the URL is local | `gemma-4-26b-a4b-it` |
+| `GEMMA_MODEL` | Model name. Google's id when the URL is empty. Any local tag when the URL is Ollama | `gemma-4-26b-a4b-it` |
 | `GEMMA_BASE_URL` | Empty for Google. `http://127.0.0.1:11434/v1` for Ollama | Google's endpoint |
 | `ELEVENLABS_API_KEY` | Readings | none |
 | `ELEVENLABS_VOICE_ID` | Voice choice | public default voice |

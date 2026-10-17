@@ -12,6 +12,7 @@ import { reportServerError, sentryEnabled } from './sentry.ts'
 
 const errorStatus: Record<string, 400 | 401 | 429 | 500 | 502 | 503> = {
   missing_gemma_key: 503,
+  missing_local_model: 503,
   missing_elevenlabs_key: 503,
   gemma_rejected: 401,
   elevenlabs_rejected: 401,

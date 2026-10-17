@@ -55,6 +55,7 @@ type PlanNote = { kind: 'live' | 'local'; lead: string }
 
 function fallbackLead(code: string): string {
   if (code === 'rate_limited' || code === 'gemma_rate_limited') return 'Gemma is busy.'
+  if (code === 'missing_local_model') return 'The local model needs a name on the server.'
   if (code === 'missing_gemma_key' || code === 'gemma_rejected') return 'Gemma is not available.'
   return 'Gemma did not answer.'
 }
@@ -731,6 +732,7 @@ export default function App() {
         spots={mapSpots}
         camera={camera}
         frame={selected ? 'place' : 'area'}
+        reachMeters={areaMeters}
         here={here}
         inset={mapInset}
         active={selected ? { ...selected, kind: selectedKind } : null}
