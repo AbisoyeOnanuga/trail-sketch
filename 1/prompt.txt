@@ -1,0 +1,9 @@
+just pulled gemma3:4b, but need to get TemporalCLI, the worker. just want to know how that works, where it installs before I install it with powershell, what feature of temporal it is using so we can better highlight in the DEV draft and @houdini-wizard/README.md
+
+---
+
+will @trail-sketch/.aider.tags.cache.v4/cache.db be needed on remote repo (to commit) or @trail-sketch/.aider.input.history or @trail-sketch/.aider.chat.history.md . personal files are kept local since app is local and network is private on tailscale for personal agent-team control
+
+---
+
+will cache.db be needed on remote repo (to commit) or .aider.input.history or .aider.chat.history.md ? personal files are kept local since app is local and network is private on tailscale for personal agent-team control

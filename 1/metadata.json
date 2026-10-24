@@ -1,0 +1,75 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M5QRY3H3TSVW0T8PYEMH3EJ8",
+  "session_id": "e96d75ea-ea02-4990-b94a-81678a4c1465",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-24T20:16:52.3740521Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "save_step_count": 2,
+  "files_touched": [
+    ".gitignore",
+    "index.html",
+    "src/App.css",
+    "src/App.tsx",
+    "src/index.css",
+    "vite.config.ts"
+  ],
+  "agent": "Cursor",
+  "model": "grok-4.7-high-fast",
+  "turn_id": "2c66bbd5b172",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 3516,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 826496,
+    "output_tokens": 2754,
+    "api_call_count": 1
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-24T20:16:52.3368783Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 2360,
+    "human_removed": 2129,
+    "total_committed": 35,
+    "total_lines_changed": 4489,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 7064,
+      "user_lines_removed": 2129,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".aider.chat.history.md": 4722,
+        ".aider.input.history": 12,
+        "index.html": 20,
+        "src/App.css": 1,
+        "src/App.tsx": 958,
+        "src/index.css": 1346,
+        "vite.config.ts": 5
+      },
+      "user_removed_per_file": {
+        "index.html": 17,
+        "src/App.css": 184,
+        "src/App.tsx": 838,
+        "src/index.css": 1090
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 7064,
+      "agent_lines_removed": 2129
+    }
+  ]
+}
