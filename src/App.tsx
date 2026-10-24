@@ -24,7 +24,7 @@ import {
 } from './library.ts'
 import { TitleContours } from './art/contours.tsx'
 import { fallbackPlan } from './plan/fallback.ts'
-import { HideMark, LibraryMark, LocateMark, PlacesMark } from './icons/glyphs.tsx'
+import { CloseMark, HideMark, LibraryMark, LocateMark, PlacesMark, PlanMark } from './icons/glyphs.tsx'
 import { MediumMark } from './icons/marks.tsx'
 import { LibrarySheet } from './library/LibrarySheet.tsx'
 import { MapView, type MapInset } from './map/MapView.tsx'
@@ -51,6 +51,7 @@ import {
 } from '../shared/studies.ts'
 
 const INTERESTS_KEY = 'trail-sketch.interests'
+const INTRO_DISMISSED_KEY = 'trail-sketch.intro-dismissed'
 
 type PlanNote = { kind: 'live' | 'local'; lead: string }
 
@@ -70,6 +71,14 @@ function readInterests(): InterestId[] {
     )
   } catch {
     return []
+  }
+}
+
+function readIntroDismissed(): boolean {
+  try {
+    return localStorage.getItem(INTRO_DISMISSED_KEY) === 'true'
+  } catch {
+    return false
   }
 }
 
@@ -136,6 +145,8 @@ export default function App() {
   const [places, setPlaces] = useState<'open' | 'map' | 'hidden'>('open')
   const [listReveal, setListReveal] = useState(0)
   const [hoverId, setHoverId] = useState<string | null>(null)
+  const [showIntro, setShowIntro] = useState(() => !readIntroDismissed())
+
   const appRef = useRef<HTMLDivElement | null>(null)
   const barRef = useRef<HTMLElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -157,11 +168,26 @@ export default function App() {
     const bar = barRef.current
     const app = appRef.current
     if (!bar || !app) return
-    const measure = () => app.style.setProperty('--bar-h', `${Math.round(bar.getBoundingClientRect().bottom)}px`)
+    const measure = () => {
+      const bottom = Math.round(bar.getBoundingClientRect().bottom)
+      app.style.setProperty('--bar-h', `${bottom}px`)
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(bar)
     return () => observer.disconnect()
+  }, [])
+
+  const dismissIntro = useCallback((openNearMe = false) => {
+    try {
+      localStorage.setItem(INTRO_DISMISSED_KEY, 'true')
+    } catch {
+      // storage unavailable
+    }
+    setShowIntro(false)
+    if (openNearMe) {
+      readPosition((latitude, longitude) => acceptFix(latitude, longitude))
+    }
   }, [])
 
   const areaRequest = useRef(0)
@@ -297,13 +323,20 @@ export default function App() {
   )
 
   useEffect(() => {
-    if (!dropped) return
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') setDropped(null)
+      if (event.key === 'Escape') {
+        if (showIntro) {
+          setShowIntro(false)
+        } else if (dropped) {
+          setDropped(null)
+        } else if (results.length > 0) {
+          setResults([])
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dropped])
+  }, [dropped, showIntro, results.length])
 
   const locate = useCallback(() => {
     readPosition((latitude, longitude) => acceptFix(latitude, longitude))
@@ -598,6 +631,15 @@ export default function App() {
         <TitleContours latitude={area?.latitude} longitude={area?.longitude} />
         <div className="brand">
           <p className="mark">Trail Sketch</p>
+          <button
+            type="button"
+            className="intro-trigger"
+            aria-label="Open introductory guide to Trail Sketch"
+            title="How to use Trail Sketch"
+            onClick={() => setShowIntro(true)}
+          >
+            ?
+          </button>
         </div>
         <div className="bar-actions">
           <button
@@ -704,25 +746,25 @@ export default function App() {
           {results.map((place, index) => {
             const option = visualMatches.length + index
             return (
-            <button
-              key={`${place.longitude}-${place.latitude}`}
-              id={`place-suggestion-${option}`}
-              type="button"
-              role="option"
-              aria-selected={suggestIndex === option}
-              className={suggestIndex === option ? 'suggest-row is-active' : 'suggest-row'}
-              onMouseEnter={() => setSuggestIndex(option)}
-              onClick={() => chooseSuggestion(option)}
-            >
-              <span>
-                <strong>{place.name}</strong>
-                <small>
-                  {area
-                    ? reachLabel(distanceMeters(area.latitude, area.longitude, place.latitude, place.longitude))
-                    : 'Move the map here'}
-                </small>
-              </span>
-            </button>
+              <button
+                key={`${place.longitude}-${place.latitude}`}
+                id={`place-suggestion-${option}`}
+                type="button"
+                role="option"
+                aria-selected={suggestIndex === option}
+                className={suggestIndex === option ? 'suggest-row is-active' : 'suggest-row'}
+                onMouseEnter={() => setSuggestIndex(option)}
+                onClick={() => chooseSuggestion(option)}
+              >
+                <span>
+                  <strong>{place.name}</strong>
+                  <small>
+                    {area
+                      ? reachLabel(distanceMeters(area.latitude, area.longitude, place.latitude, place.longitude))
+                      : 'Move the map here'}
+                  </small>
+                </span>
+              </button>
             )
           })}
         </div>
@@ -805,6 +847,7 @@ export default function App() {
           listReveal={listReveal}
         />
       ) : null}
+
       {showPlacesDock ? (
         <div className={places === 'hidden' ? 'places-dock is-hidden' : 'places-dock'}>
           <button type="button" className="primary" onClick={() => setPlaces('open')}>
@@ -819,6 +862,7 @@ export default function App() {
           ) : null}
         </div>
       ) : null}
+
       {libraryOpen ? (
         <LibrarySheet
           visits={visits}
@@ -832,6 +876,82 @@ export default function App() {
           }}
           onDelete={(visit) => setVisits(forgetVisit(visit.id, visit.studiedAt, profile?.sub ?? null))}
         />
+      ) : null}
+
+      {showIntro ? (
+        <div
+          className="intro-overlay"
+          role="presentation"
+          onClick={() => dismissIntro()}
+        >
+          <section
+            className="intro-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="intro-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="intro-header">
+              <span className="eyebrow">Field Companion Guide</span>
+              <button
+                type="button"
+                className="text-button intro-close"
+                onClick={() => dismissIntro()}
+                aria-label="Close guide"
+              >
+                <CloseMark />
+              </button>
+            </div>
+
+            <h2 id="intro-title">Welcome to Trail Sketch</h2>
+            <p className="intro-lead">
+              A plein-air sketching assistant designed for artists and naturalists in the field. Find scenic viewpoints, plan your pigments, and capture the light.
+            </p>
+
+            <ol className="intro-steps">
+              <li className="intro-step">
+                <span className="intro-step-num">1</span>
+                <div>
+                  <strong>Set your medium &amp; perimeter</strong>
+                  <p>Choose graphite, watercolour, gouache, or ink in the top bar. Pick how far you want to travel (walk, bike, or drive).</p>
+                </div>
+              </li>
+              <li className="intro-step">
+                <span className="intro-step-num">2</span>
+                <div>
+                  <strong>Select a subject or point on the map</strong>
+                  <p>Filter by what catches your eye (water, trees, architecture, hills) or tap anywhere on the hand-tinted map to drop a surveyor pin.</p>
+                </div>
+              </li>
+              <li className="intro-step">
+                <span className="intro-step-num">3</span>
+                <div>
+                  <strong>Draft your field plan</strong>
+                  <p>Open a location to inspect live lighting, 3-value tonal studies, tailored pigment recipes, and narrated field cues.</p>
+                </div>
+              </li>
+            </ol>
+
+            <div className="intro-actions">
+              <button
+                type="button"
+                className="primary"
+                onClick={() => dismissIntro(false)}
+              >
+                <PlanMark />
+                Start exploring
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => dismissIntro(true)}
+              >
+                <LocateMark />
+                Find spots near me
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
     </div>
   )

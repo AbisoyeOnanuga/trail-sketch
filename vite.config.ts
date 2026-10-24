@@ -24,6 +24,11 @@ export default defineConfig({
     },
   },
   server: {
+    // Phone opens this through Tailscale. The API stays on this PC; /api is proxied.
+    host: true,
+    port: 5173,
+    strictPort: true,
+    allowedHosts: true,
     proxy: {
       '/api': 'http://127.0.0.1:8787',
     },

@@ -19,6 +19,10 @@ dist-ssr
 NUL
 nul
 
+# Aider session and the repo-map cache. Rebuilt locally. Not used by the app.
+.aider*
+.aider.tags.cache.v4/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
