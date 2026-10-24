@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M5Q98ZZ52ZRHS3K1VZ9S44G6",
+  "session_id": "88f0f593-ebd5-45e5-9a14-1eda6bddea23",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-24T15:43:09.6210223Z",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    ".hackswarm/notes.md"
+  ],
+  "agent": "Cursor",
+  "model": "grok-4.7-medium",
+  "turn_id": "3b61883a5380",
+  "compact_transcript_start": 0,
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-24T15:43:09.5154965Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
