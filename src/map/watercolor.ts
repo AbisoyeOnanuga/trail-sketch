@@ -1,7 +1,7 @@
 import type { Map } from 'maplibre-gl'
 
-// Restyles the OpenFreeMap "liberty" layers as a watercolor field map. The background layer is cleared so the
-// paper texture on `.map` shows through every wash; fills stay partly transparent for the same reason.
+// Restyles the OpenFreeMap "liberty" layers as a watercolor field map. The background layer is cleared so a
+// quiet paper color shows in any gap. Land is painted, so the city is not a hole onto a texture.
 
 const ink = '#3b352c'
 const halo = 'rgba(244, 242, 236, 0.92)'
@@ -20,7 +20,7 @@ const fills: Record<string, [string, number]> = {
   landuse_track: ['#e6d9c6', 0.5],
   landuse_hospital: ['#ebe1d3', 0.45],
   landuse_school: ['#ebe1d3', 0.45],
-  landuse_residential: ['#ebe5d8', 0],
+  landuse_residential: ['#efe8da', 1],
   aeroway_fill: ['#e7e1d4', 0.6],
   building: ['#e2d9c8', 0.75],
 }
