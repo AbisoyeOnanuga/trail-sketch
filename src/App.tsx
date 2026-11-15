@@ -56,10 +56,10 @@ const INTRO_DISMISSED_KEY = 'trail-sketch.intro-dismissed'
 type PlanNote = { kind: 'live' | 'local'; lead: string }
 
 function fallbackLead(code: string): string {
-  if (code === 'rate_limited' || code === 'gemma_rate_limited') return 'AI is busy.'
+  if (code === 'rate_limited' || code === 'gemma_rate_limited') return 'The plan is waiting.'
   if (code === 'missing_local_model') return 'The local model needs a name on the server.'
-  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return 'AI is not available.'
-  return 'AI did not answer.'
+  if (code === 'missing_gemma_key' || code === 'gemma_rejected') return 'A plan is not available.'
+  return 'The plan did not come back.'
 }
 
 function readInterests(): InterestId[] {
@@ -492,7 +492,7 @@ export default function App() {
       setCard(next)
       writeCachedCard(next)
       setPlanFromGemma(true)
-      setPlanNote({ kind: 'live', lead: 'AI' })
+      setPlanNote({ kind: 'live', lead: 'AI wrote this plan.' })
     } catch (error) {
       if (!stillThisPlace()) return
       const code = error instanceof Error ? error.message : 'request_failed'
@@ -673,7 +673,7 @@ export default function App() {
                 setCard(saved)
                 setWeather(saved.weatherLine)
                 setPlanFromGemma(saved.source === 'gemma')
-                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'AI' } : null)
+                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'AI wrote this plan.' } : null)
               }}
             >
               Saved study
@@ -892,7 +892,7 @@ export default function App() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="intro-header">
-              <span className="eyebrow">Field Companion Guide</span>
+              <span className="eyebrow">For drawing outside</span>
               <button
                 type="button"
                 className="text-button intro-close"
@@ -903,31 +903,31 @@ export default function App() {
               </button>
             </div>
 
-            <h2 id="intro-title">Welcome to Trail Sketch</h2>
+            <h2 id="intro-title">Find a place, then put the phone away.</h2>
             <p className="intro-lead">
-              A plein-air sketching assistant designed for artists and naturalists in the field. Find scenic viewpoints, plan your pigments, and capture the light.
+              Trail Sketch looks for water, trees, stone, and open light. Open one place, take the notes, and go draw.
             </p>
 
             <ol className="intro-steps">
               <li className="intro-step">
                 <span className="intro-step-num">1</span>
                 <div>
-                  <strong>Set your medium &amp; perimeter</strong>
-                  <p>Choose graphite, watercolour, gouache, or ink in the top bar. Pick how far you want to travel (walk, bike, or drive).</p>
+                  <strong>How far</strong>
+                  <p>Here, a walk, a hike, a ride, or a drive. The farther choices keep the far places.</p>
                 </div>
               </li>
               <li className="intro-step">
                 <span className="intro-step-num">2</span>
                 <div>
-                  <strong>Select a subject or point on the map</strong>
-                  <p>Filter by what catches your eye (water, trees, architecture, hills) or tap anywhere on the hand-tinted map to drop a surveyor pin.</p>
+                  <strong>A place</strong>
+                  <p>Open a row, or tap the map and study that spot.</p>
                 </div>
               </li>
               <li className="intro-step">
                 <span className="intro-step-num">3</span>
                 <div>
-                  <strong>Draft your field plan</strong>
-                  <p>Open a location to inspect live lighting, 3-value tonal studies, tailored pigment recipes, and narrated field cues.</p>
+                  <strong>A plan</strong>
+                  <p>Tones are ready when you open a place. Suggest a plan writes notes for this place.</p>
                 </div>
               </li>
             </ol>
@@ -939,7 +939,7 @@ export default function App() {
                 onClick={() => dismissIntro(false)}
               >
                 <PlanMark />
-                Start exploring
+                Show places
               </button>
               <button
                 type="button"
@@ -947,7 +947,7 @@ export default function App() {
                 onClick={() => dismissIntro(true)}
               >
                 <LocateMark />
-                Find spots near me
+                Near me
               </button>
             </div>
           </section>
