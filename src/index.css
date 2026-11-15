@@ -19,19 +19,10 @@
   --display: 'Newsreader', 'Iowan Old Style', Palatino, serif;
   --body: 'Source Serif 4', 'Iowan Old Style', Palatino, serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --ease: 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-curve: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease: 200ms var(--ease-curve);
   --radius: 3px;
 
-  --grid:
-    linear-gradient(to right, color-mix(in srgb, var(--cobalt) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--cobalt) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(to right, color-mix(in srgb, var(--cobalt) 13%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--cobalt) 13%, transparent) 1px, transparent 1px);
-  --tooth: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 0 0.26 0 0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  --paper-layers: var(--tooth);
-  --paper-sizes: 180px 180px;
-  --paper-positions: 0 0;
-  --paper-repeat: repeat;
   --line-thumb: linear-gradient(var(--cobalt), var(--cobalt));
   --line-track: linear-gradient(var(--rule-soft), var(--rule-soft));
 
@@ -57,8 +48,6 @@ html, body, #root {
 body {
   overflow: hidden;
   background-color: var(--paper);
-  background-image: var(--grid);
-  background-size: 18px 18px, 18px 18px, 90px 90px, 90px 90px;
 }
 
 button, input {
@@ -108,15 +97,13 @@ button:disabled {
   height: 100% !important;
 }
 
-/* The map style clears its own background, so this cold-press paper sits under every wash. */
+/* Quiet paper under the watercolor. The washes carry the map; nothing grainy sits on top. */
 .map {
-  background-color: var(--paper);
+  background-color: #efe8da;
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 20% 15%, color-mix(in srgb, #e9dfc8 55%, transparent), transparent 60%),
-    radial-gradient(ellipse at 85% 80%, color-mix(in srgb, #dfe6e2 60%, transparent), transparent 55%),
-    var(--grid);
-  background-size: 220px 220px, 100% 100%, 100% 100%, 18px 18px, 18px 18px, 90px 90px, 90px 90px;
+    radial-gradient(ellipse at 18% 12%, color-mix(in srgb, #f7f1e4 80%, transparent), transparent 58%),
+    radial-gradient(ellipse at 88% 86%, color-mix(in srgb, #e4ebe6 50%, transparent), transparent 52%);
+  background-size: 100% 100%, 100% 100%;
 }
 
 .map .maplibregl-ctrl-bottom-right {
@@ -130,13 +117,9 @@ button:disabled {
   box-shadow: var(--shadow);
 }
 
-/* Panels: warm paper with a canvas tooth, and a hard offset shadow. */
+/* Panels: plain warm paper and a hard offset shadow. */
 .bar, .explorer, .gate, .sheet, .suggest, .places-dock, .intro-modal {
-  background-color: #f6f3eb;
-  background-image: var(--paper-layers);
-  background-size: var(--paper-sizes);
-  background-position: var(--paper-positions);
-  background-repeat: var(--paper-repeat);
+  background-color: #f7f4ec;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -375,19 +358,7 @@ button:disabled {
 .plan-note.is-live {
   border-left-color: var(--viridian);
   background: color-mix(in srgb, var(--viridian) 7%, transparent);
-}
-
-.ai-mark {
-  display: inline-block;
-  padding: 0 0.32rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--cobalt);
-  vertical-align: 0.08rem;
+  animation: note-in 320ms var(--ease-curve);
 }
 
 .ui-name {
@@ -936,10 +907,6 @@ button:disabled {
   right: max(0rem, env(safe-area-inset-right, 0rem));
   bottom: 0;
   height: 56dvh;
-  background-image: var(--paper-layers);
-  background-size: 16px 16px, 18px 18px, 18px 18px, 90px 90px, 90px 90px;
-  background-position: top right, 0 0, 0 0, 0 0, 0 0;
-  background-repeat: no-repeat, repeat, repeat, repeat, repeat;
   padding: 0 0.75rem max(0.6rem, env(safe-area-inset-bottom, 0.6rem));
   border-bottom: 0;
   transition: height 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -1189,10 +1156,10 @@ button:disabled {
 /* Slim scroll line inside panel padding */
 .sheet { scrollbar-width: none; }
 .sheet[data-scrollable='true'] {
-  background-image: var(--line-thumb), var(--line-track), var(--paper-layers);
-  background-size: 3px max(2rem, calc(var(--view, 1) * 100% - 1.5rem)), 1px calc(100% - 1.5rem), var(--paper-sizes);
-  background-position: right 5px top calc(0.75rem + var(--scroll, 0) * (100% - 1.5rem - max(2rem, calc(var(--view, 1) * 100% - 1.5rem)))), right 6px top 0.75rem, var(--paper-positions);
-  background-repeat: no-repeat, no-repeat, var(--paper-repeat);
+  background-image: var(--line-thumb), var(--line-track);
+  background-size: 3px max(2rem, calc(var(--view, 1) * 100% - 1.5rem)), 1px calc(100% - 1.5rem);
+  background-position: right 5px top calc(0.75rem + var(--scroll, 0) * (100% - 1.5rem - max(2rem, calc(var(--view, 1) * 100% - 1.5rem)))), right 6px top 0.75rem;
+  background-repeat: no-repeat, no-repeat;
 }
 .rail[data-scrollable='true'] {
   background-image: var(--line-thumb), var(--line-track);
@@ -1211,7 +1178,7 @@ button:disabled {
   .rail[data-at-start='true'] { --fade-top: 0px; }
   .rail[data-at-end='true'] { --fade-end: 0px; }
   .sheet[data-scrollable='true'] {
-    background-size: 2px max(1.5rem, calc(var(--view, 1) * 100% - 1.5rem)), 0 0, var(--paper-sizes);
+    background-size: 2px max(1.5rem, calc(var(--view, 1) * 100% - 1.5rem)), 0 0;
   }
 }
 
@@ -1334,13 +1301,18 @@ button:disabled {
   from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+@keyframes note-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.values.is-fresh { animation: note-in 360ms var(--ease-curve); }
 
 @media (prefers-reduced-motion: reduce) {
   .sheet, .explorer, .gate, .intro-modal, .intro-overlay { animation: none; transition: none; }
   .preview, .locate, .secondary, .text-button, .chips button, .mediums button, .ink-row button,
   .search button, .primary, .use-map, .back-button, .intro-trigger { transition: none; transform: none !important; }
   .preview.is-ghost .study-art, .ghost-line, .ink-spin, .ink-spin::before, .voice-spin, .sheet.is-busy .study-art, .here-label,
-  .drop-mark, .drop-card, .look-here {
+  .drop-mark, .drop-card, .look-here, .plan-note.is-live, .values.is-fresh {
     animation: none;
   }
 }
