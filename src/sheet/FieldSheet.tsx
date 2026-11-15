@@ -77,10 +77,25 @@ export function FieldSheet({
     ? distanceMeters(here.latitude, here.longitude, location.latitude, location.longitude)
     : null
   const defaults = toneNotes(kind)
-  const tones = defaults.map((fallback, index) => {
+  const toneRows = defaults.map((fallback, index) => {
     const note = study?.values[index]?.trim() ?? ''
-    return note && !/^(light|middle|mid|dark)\.?$/i.test(note) ? note : fallback
+    const usable = Boolean(note && !/^(light|middle|mid|dark)\.?$/i.test(note))
+    return { text: usable ? note : fallback, fromModel: Boolean(planFromGemma && usable) }
   })
+  const tones = toneRows.map((row) => row.text)
+  const localPigments = pigment && !(study && study.palette.length)
+  const partialPlan =
+    planFromGemma &&
+    (toneRows.some((row) => !row.fromModel) ||
+      localPigments ||
+      !study?.motif.trim() ||
+      !study.subject.trim() ||
+      !study.leaveBefore.trim())
+  const planLead = planFromGemma
+    ? partialPlan
+      ? 'Some AI was used to generate this plan.'
+      : 'AI was used to generate this plan.'
+    : planNote?.lead
 
   return (
     <section className={busy ? 'sheet is-busy' : 'sheet'} aria-label="Field study" ref={setPane}>
@@ -118,7 +133,7 @@ export function FieldSheet({
       </p>
       {planNote ? (
         <p className={planFromGemma ? 'plan-note is-live' : 'plan-note'} role="status">
-          {planNote.lead}
+          {planLead}
           {planNote.kind === 'local' ? (
             <>
               {' '}

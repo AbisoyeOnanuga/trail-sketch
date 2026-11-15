@@ -128,8 +128,8 @@ function InterestGate({
   return (
     <section className="gate" aria-label="What would you like to study today">
       <p className="eyebrow">For drawing outside</p>
-      <h2>Find a place, then put the phone away.</h2>
-      <p className="gate-copy">Trail Sketch looks for water, trees, stone, and open light. Pick what you want in the picture. Those places lead the list.</p>
+      <h2>A place to draw outside.</h2>
+      <p className="gate-copy">Trail Sketch finds water, trees, stone, and open light near you. Pick what you want in the picture. Those places lead the list.</p>
       <div className="chips" role="group" aria-label="Interests">
         {interestIds.map((id) => (
           <button
@@ -168,6 +168,7 @@ type ExplorerProps = {
   loading: boolean
   hasArea: boolean
   notice: string | null
+  guide: string | null
   onHover: (id: string | null) => void
   onOpen: (study: Study) => void
   onUseMap: () => void
@@ -203,6 +204,7 @@ export function Explorer({
   loading,
   hasArea,
   notice,
+  guide,
   onHover,
   onOpen,
   onUseMap,
@@ -377,6 +379,7 @@ export function Explorer({
           ))}
         </div>
       </div>
+      {guide ? <p className="explorer-note">{guide}</p> : null}
       {notice ? <p className="explorer-note">{notice}</p> : null}
       {!loading && studies.length === 0 && !notice ? (
         <p className="explorer-note">

@@ -24,7 +24,7 @@ import {
 } from './library.ts'
 import { TitleContours } from './art/contours.tsx'
 import { fallbackPlan } from './plan/fallback.ts'
-import { CloseMark, HideMark, LibraryMark, LocateMark, PlacesMark, PlanMark } from './icons/glyphs.tsx'
+import { HideMark, LibraryMark, LocateMark, PlacesMark } from './icons/glyphs.tsx'
 import { MediumMark } from './icons/marks.tsx'
 import { LibrarySheet } from './library/LibrarySheet.tsx'
 import { MapView, type MapInset } from './map/MapView.tsx'
@@ -41,6 +41,8 @@ import {
   distanceChoices,
   distanceMeters,
   bestPhrase,
+  interestIds,
+  interestLabels,
   rankStudies,
   reachLabel,
   reachLine,
@@ -51,7 +53,7 @@ import {
 } from '../shared/studies.ts'
 
 const INTERESTS_KEY = 'trail-sketch.interests'
-const INTRO_DISMISSED_KEY = 'trail-sketch.intro-dismissed'
+const WELCOMED_KEY = 'trail-sketch.welcomed'
 
 type PlanNote = { kind: 'live' | 'local'; lead: string }
 
@@ -74,9 +76,9 @@ function readInterests(): InterestId[] {
   }
 }
 
-function readIntroDismissed(): boolean {
+function readWelcomed(): boolean {
   try {
-    return localStorage.getItem(INTRO_DISMISSED_KEY) === 'true'
+    return localStorage.getItem(WELCOMED_KEY) === 'true'
   } catch {
     return false
   }
@@ -145,10 +147,14 @@ export default function App() {
   const [places, setPlaces] = useState<'open' | 'map' | 'hidden'>('open')
   const [listReveal, setListReveal] = useState(0)
   const [hoverId, setHoverId] = useState<string | null>(null)
-  const [showIntro, setShowIntro] = useState(() => !readIntroDismissed())
+  const [showIntro, setShowIntro] = useState(() => !readWelcomed())
+  const [welcomePicks, setWelcomePicks] = useState<InterestId[]>(() => readInterests())
+  const [showNext, setShowNext] = useState(false)
 
   const appRef = useRef<HTMLDivElement | null>(null)
   const barRef = useRef<HTMLElement | null>(null)
+  const searchRef = useRef<HTMLInputElement | null>(null)
+  const welcomeRef = useRef<HTMLElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioUrl = useRef<string | null>(null)
   const chooseId = useRef(0)
@@ -178,17 +184,10 @@ export default function App() {
     return () => observer.disconnect()
   }, [])
 
-  const dismissIntro = useCallback((openNearMe = false) => {
-    try {
-      localStorage.setItem(INTRO_DISMISSED_KEY, 'true')
-    } catch {
-      // storage unavailable
-    }
-    setShowIntro(false)
-    if (openNearMe) {
-      readPosition((latitude, longitude) => acceptFix(latitude, longitude))
-    }
-  }, [])
+  useEffect(() => {
+    if (!showIntro) return
+    welcomeRef.current?.focus()
+  }, [showIntro])
 
   const areaRequest = useRef(0)
 
@@ -325,9 +324,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (showIntro) {
-          setShowIntro(false)
-        } else if (dropped) {
+        if (dropped) {
           setDropped(null)
         } else if (results.length > 0) {
           setResults([])
@@ -336,7 +333,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dropped, showIntro, results.length])
+  }, [dropped, results.length])
 
   const locate = useCallback(() => {
     readPosition((latitude, longitude) => acceptFix(latitude, longitude))
@@ -362,6 +359,23 @@ export default function App() {
     localStorage.setItem(INTERESTS_KEY, JSON.stringify(next))
     setInterests(next)
     setEditing(false)
+  }
+
+  function finishWelcome(mode: 'near' | 'search' | 'skip') {
+    try {
+      localStorage.setItem(WELCOMED_KEY, 'true')
+    } catch {
+      // storage unavailable
+    }
+    if (welcomePicks.length > 0) saveInterests(welcomePicks)
+    setShowIntro(false)
+    if (mode === 'skip') return
+    setShowNext(true)
+    if (mode === 'near') {
+      readPosition((latitude, longitude) => acceptFix(latitude, longitude))
+      return
+    }
+    window.requestAnimationFrame(() => searchRef.current?.focus())
   }
 
   const searchTimer = useRef(0)
@@ -426,6 +440,7 @@ export default function App() {
   }
 
   function acceptStudy(study: Study) {
+    setShowNext(false)
     setVisits(
       rememberVisit(
         {
@@ -492,7 +507,7 @@ export default function App() {
       setCard(next)
       writeCachedCard(next)
       setPlanFromGemma(true)
-      setPlanNote({ kind: 'live', lead: 'AI wrote this plan.' })
+      setPlanNote({ kind: 'live', lead: 'AI was used to generate this plan.' })
     } catch (error) {
       if (!stillThisPlace()) return
       const code = error instanceof Error ? error.message : 'request_failed'
@@ -634,9 +649,12 @@ export default function App() {
           <button
             type="button"
             className="intro-trigger"
-            aria-label="Open introductory guide to Trail Sketch"
-            title="How to use Trail Sketch"
-            onClick={() => setShowIntro(true)}
+            aria-label="What Trail Sketch is"
+            title="What Trail Sketch is"
+            onClick={() => {
+              setWelcomePicks(interests)
+              setShowIntro(true)
+            }}
           >
             ?
           </button>
@@ -673,7 +691,7 @@ export default function App() {
                 setCard(saved)
                 setWeather(saved.weatherLine)
                 setPlanFromGemma(saved.source === 'gemma')
-                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'AI wrote this plan.' } : null)
+                setPlanNote(saved.source === 'gemma' ? { kind: 'live', lead: 'AI was used to generate this plan.' } : null)
               }}
             >
               Saved study
@@ -702,6 +720,7 @@ export default function App() {
             Search a place
           </label>
           <input
+            ref={searchRef}
             id="place-search"
             role="combobox"
             aria-autocomplete="list"
@@ -839,6 +858,7 @@ export default function App() {
           loading={areaBusy}
           hasArea={area !== null}
           notice={notice}
+          guide={showNext ? 'Open a place. The card shows the light and a way to draw it.' : null}
           onHover={setHoverId}
           onOpen={acceptStudy}
           onUseMap={() => setPlaces('map')}
@@ -879,77 +899,61 @@ export default function App() {
       ) : null}
 
       {showIntro ? (
-        <div
-          className="intro-overlay"
-          role="presentation"
-          onClick={() => dismissIntro()}
-        >
+        <div className="intro-overlay">
           <section
+            ref={welcomeRef}
             className="intro-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="intro-title"
-            onClick={(event) => event.stopPropagation()}
+            tabIndex={-1}
           >
-            <div className="intro-header">
-              <span className="eyebrow">For drawing outside</span>
-              <button
-                type="button"
-                className="text-button intro-close"
-                onClick={() => dismissIntro()}
-                aria-label="Close guide"
-              >
-                <CloseMark />
-              </button>
-            </div>
-
-            <h2 id="intro-title">Find a place, then put the phone away.</h2>
+            <p className="eyebrow">Trail Sketch</p>
+            <h2 id="intro-title">A place to draw outside.</h2>
             <p className="intro-lead">
-              Trail Sketch looks for water, trees, stone, and open light. Open one place, take the notes, and go draw.
+              This looks nearby for water, trees, stone, and open light. Pick what you want in the picture, then look near you. Open one place, read the light, and put the phone away.
             </p>
-
-            <ol className="intro-steps">
-              <li className="intro-step">
-                <span className="intro-step-num">1</span>
-                <div>
-                  <strong>How far</strong>
-                  <p>Here, a walk, a hike, a ride, or a drive. The farther choices keep the far places.</p>
-                </div>
-              </li>
-              <li className="intro-step">
-                <span className="intro-step-num">2</span>
-                <div>
-                  <strong>A place</strong>
-                  <p>Open a row, or tap the map and study that spot.</p>
-                </div>
-              </li>
-              <li className="intro-step">
-                <span className="intro-step-num">3</span>
-                <div>
-                  <strong>A plan</strong>
-                  <p>Tones are ready when you open a place. Suggest a plan writes notes for this place.</p>
-                </div>
-              </li>
-            </ol>
-
+            <p className="field-label" id="welcome-picks">What do you want in the picture?</p>
+            <div className="chips intro-picks" role="group" aria-labelledby="welcome-picks">
+              {interestIds.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={welcomePicks.includes(id)}
+                  className={welcomePicks.includes(id) ? 'is-on' : ''}
+                  onClick={() =>
+                    setWelcomePicks((current) =>
+                      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+                    )
+                  }
+                >
+                  {interestLabels[id]}
+                </button>
+              ))}
+            </div>
+            <p className="hint-inline">Pick at least one. Those places lead the list.</p>
             <div className="intro-actions">
               <button
                 type="button"
                 className="primary"
-                onClick={() => dismissIntro(false)}
+                disabled={welcomePicks.length === 0}
+                onClick={() => finishWelcome('near')}
               >
-                <PlanMark />
-                Show places
+                <LocateMark />
+                Look near me
               </button>
               <button
                 type="button"
                 className="secondary"
-                onClick={() => dismissIntro(true)}
+                disabled={welcomePicks.length === 0}
+                onClick={() => finishWelcome('search')}
               >
-                <LocateMark />
-                Near me
+                Search a place
               </button>
             </div>
+            <button type="button" className="text-button intro-skip" onClick={() => finishWelcome('skip')}>
+              Skip for now
+            </button>
           </section>
         </div>
       ) : null}
