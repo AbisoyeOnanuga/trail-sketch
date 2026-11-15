@@ -118,7 +118,7 @@ export function FieldSheet({
       </p>
       {planNote ? (
         <p className={planFromGemma ? 'plan-note is-live' : 'plan-note'} role="status">
-          {planFromGemma ? <span className="ai-mark">AI</span> : planNote.lead}
+          {planNote.lead}
           {planNote.kind === 'local' ? (
             <>
               {' '}
@@ -131,7 +131,7 @@ export function FieldSheet({
 
       <p className="field-label">Suggested tones for your study</p>
       <p className="hint-inline">Lightest to darkest. You choose what stays.</p>
-      <ol className="values" aria-label="Suggested tones">
+      <ol className={planFromGemma ? 'values is-fresh' : 'values'} aria-label="Suggested tones">
         {tones.map((note, index) => (
           <li key={index} className={`value value-${index + 1}`}>
             <span className="value-step" aria-hidden="true">
@@ -197,7 +197,7 @@ export function FieldSheet({
 
       {busy === 'card' ? (
         <p className="hint-inline" role="status">
-          A closer study is on the way.
+          Writing a plan for this place.
         </p>
       ) : null}
       {busy === 'voice' ? (
